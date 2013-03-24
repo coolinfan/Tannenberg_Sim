@@ -1,31 +1,42 @@
 breed [ cells cell ]
-breed [ armies army ]
+breed [ divisions division ]
+breed [ artilleries artillery ]
 undirected-link-breed [rail-links rail-link]
+globals []
+
 
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
   n              ;; used to store a count of white neighbors
-  terrain        ;; {0=plains, 1=water, 2=rocks}
+  terrain        ;; {0=forest, 1=water, 2=desert, 3=mud, 4=swamp}
   hasrail
 ]
 
-armies-own [
+divisions-own [
   allegiance
-  strength       ;; just a placeholder for now 
+  troops              ;; Actual troop count
+  aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
+  unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
+  morale              ;; Scale of 0-100, lowered by movement and casualties.
+]
+rail-links-own [
 ]
 
-rail-links-own [
+artilleries-own [
 ]
 
 to setup
   clear-all
   setup-grid
+  setup-weapons
   add-terrain
-  ;add-rail
-  ;add-armies
+  add-rail
+  add-divisions
   reset-ticks
 end
 
+
+;;Set up the grid
 to setup-grid
   set-default-shape cells "hex"
   
@@ -42,6 +53,19 @@ to setup-grid
         [ set hex-neighbors cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
         [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
 end
+
+
+;;Initialize weapon firepower values
+to setup-weapons
+  ;For each division, add the corresponding firepower value for each weapon it has
+  let rifle 1
+  let maxim 100
+  
+  
+  
+  
+end
+
 
 to add-terrain
   let data []
@@ -61,7 +85,8 @@ to add-terrain
           if-else terrain = 1 [ color-terr blue ] [
             if-else terrain = 2 [ color-terr yellow + 3 ] [
               if-else terrain = 3 [color-terr brown ] [
-              color-terr green - 5 ] ] ] ] ]]
+                if-else terrain = 4 [ color-terr green + 4 ] [
+              color-terr green - 5 ] ] ] ] ] ] ]
 end
 
 to color-terr [ col ] ask cells-here [ set color col ] end
@@ -75,13 +100,16 @@ to add-rail-link [ xa ya xb yb ]
       ]]]
 end
 
-to add-army [ xco yco team ]
-  ask patch xco yco [ sprout-armies 1 [ display-army team 
+to add-division [ xco yco team ]
+  ask patch xco yco [ sprout-divisions 1 [ display-division team 
       set allegiance team
-      set strength 100 ]]
+      set troops 14800
+      set unaimedWeapons 100
+      set aimedWeapons .01
+      set morale 100 ]]
 end
 
-to display-army [team]
+to display-division [team]
   ifelse team = 0 [ set color cyan ] [ set color red ]
   if pxcor mod 2 = 0
     [ set ycor ycor - 0.5 ]
@@ -92,7 +120,7 @@ to go
   ask patches [
     ask cells-here [
       let neighb hex-neighbors
-        ask armies-here [
+        ask divisions-here [
           move-to one-of neighb 
         ]
     ]
@@ -105,17 +133,17 @@ end
 ; stuff that pretty much just contains data goes down here.
 ; we can turn this all into text files easily
 
-; these are just example armies
-to add-armies
+; these are just example divisions
+to add-divisions
   ; north
-  add-army 22 28  1
-  add-army 22 25 0
-  add-army 27 28  1
-  add-army 28 27 1
+  add-division 22 22  1
+  add-division 22 19 0
+  add-division 27 20  1
+  add-division 28 21 1
   ; south
-  add-army 32 13 0
-  add-army 29 10 1
-  add-army 30 8 1
+  add-division 32 13 0
+  add-division 29 10 1
+  add-division 30 8 1
 end
 
 ; example railway
@@ -145,8 +173,34 @@ to add-rail
   add-rail-link 11 11 12 11
 end
 
-to perform-attrition
+
+
+;Combat procedures
+;attacker and defender are both divisions
+to attack [attacker defender]
+  ; TO ADD:
+  ; more intelligent unaimed weapon damage calculations (try to figure out density of target)
   
+  ; Look at terrain of the defenders, assign a bonus, which is basically a defensive multiplier
+  let dTerrainBonus 1
+  
+  ask defender [ ask patch-here [ ask cells-here[ 
+        if terrain = 0 [set dTerrainBonus 2]
+  ]]]
+  
+  ;Unaimed fire calculations performed first
+  ;Attacker performs attrition on the defender first
+  let attackDamage (([aimedWeapons] of attacker) * ([morale] of attacker) )
+  ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
+  
+  let defendDamage (([aimedWeapons] of defender) * ([morale] of defender))
+  ask attacker [set troops (troops - defendDamage)]
+  
+  set attackDamage (([unaimedWeapons] of attacker) *  ([morale] of attacker))
+  ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
+  
+  set defendDamage (([unaimedWeapons] of defender) *  ([morale] of defender))
+  ask attacker [set troops (troops - defendDamage)]
   
   
 end
@@ -155,7 +209,7 @@ GRAPHICS-WINDOW
 240
 10
 947
-92
+483
 -1
 -1
 17.0
@@ -171,7 +225,7 @@ GRAPHICS-WINDOW
 0
 40
 0
-2
+25
 1
 1
 1
