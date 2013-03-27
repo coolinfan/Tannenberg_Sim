@@ -104,7 +104,7 @@ to add-division [ xco yco team ]
   ask patch xco yco [ sprout-divisions 1 [ display-division team 
       set allegiance team
       set troops 14800
-      set unaimedWeapons 100
+      set unaimedWeapons 0
       set aimedWeapons .01
       set morale 100 ]]
 end
@@ -136,14 +136,31 @@ end
 ; these are just example divisions
 to add-divisions
   ; north
-  add-division 22 22  1
-  add-division 22 19 0
-  add-division 27 20  1
-  add-division 28 21 1
+  ;add-division 22 22  1
+  ;add-division 22 19 0
+  ;add-division 27 20  1
+  ;add-division 28 21 1
   ; south
-  add-division 32 13 0
-  add-division 29 10 1
-  add-division 30 8 1
+  ;add-division 32 13 0
+  ;add-division 29 10 1
+  ;add-division 30 8 1
+  
+  
+  add-division 18 5 1
+  add-division 18 2 1
+  add-division 18 3 1
+  add-division 20 3 1
+  add-division 21 3 1
+  add-division 21 5 1
+  add-division 16 3 1
+  add-division 21 2 1
+  
+  
+  add-division 14 4 0
+  add-division 15 6 0
+  add-division 17 7 0
+  add-division 20 8 0
+  add-division 23 6 0
 end
 
 ; example railway
@@ -190,18 +207,26 @@ to attack [attacker defender]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
-  let attackDamage (([aimedWeapons] of attacker) * ([morale] of attacker) )
+  let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker) * ([morale] of attacker) )
   ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
   
-  let defendDamage (([aimedWeapons] of defender) * ([morale] of defender))
+  let defendDamage ([troops] of defender * ([aimedWeapons] of defender) * ([morale] of defender))
   ask attacker [set troops (troops - defendDamage)]
   
-  set attackDamage (([unaimedWeapons] of attacker) *  ([morale] of attacker))
+  set attackDamage ([troops] of attacker * ([unaimedWeapons] of attacker) *  ([morale] of attacker))
   ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
   
-  set defendDamage (([unaimedWeapons] of defender) *  ([morale] of defender))
+  set defendDamage ([troops] of defender * ([unaimedWeapons] of defender) *  ([morale] of defender))
   ask attacker [set troops (troops - defendDamage)]
   
+  if [troops] of attacker < 0
+  [
+    ask attacker [die]
+  ]
+  if [troops] of defender < 0
+  [
+    ask defender [die]
+  ]
   
 end
 @#$#@#$#@
