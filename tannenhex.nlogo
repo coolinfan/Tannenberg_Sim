@@ -1,6 +1,8 @@
 breed [ cells cell ]
 breed [ divisions division ]
 breed [ artilleries artillery ]
+breed [ pathnodes pathnode ]
+breed [ queuenodes queuenode ]
 undirected-link-breed [rail-links rail-link]
 globals []
 
@@ -13,11 +15,10 @@ cells-own [
 ]
 
 divisions-own [
-  allegiance
+  team
   troops              ;; Actual troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
-  morale              ;; Scale of 0-100, lowered by movement and casualties.
 ]
 rail-links-own [
 ]
@@ -25,12 +26,23 @@ rail-links-own [
 artilleries-own [
 ]
 
+pathnodes-own [
+  x
+  y
+  previousNode  ;; Previous node in the path 
+]
+
+queuenodes-own [
+  pathnode
+]
+
+
 to setup
   clear-all
   setup-grid
   setup-weapons
   add-terrain
-  add-rail
+  ;add-rail
   add-divisions
   reset-ticks
 end
@@ -38,6 +50,7 @@ end
 
 ;;Set up the grid
 to setup-grid
+  set-patch-size mapSize
   set-default-shape cells "hex"
   
   ask patches
@@ -100,32 +113,33 @@ to add-rail-link [ xa ya xb yb ]
       ]]]
 end
 
-to add-division [ xco yco team ]
-  ask patch xco yco [ sprout-divisions 1 [ display-division team 
-      set allegiance team
-      set troops 14800
+to add-division [ xco yco introops effectiveness allegiance ]
+  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+      set team allegiance
+      set troops introops
       set unaimedWeapons 0
-      set aimedWeapons .01
-      set morale 100 ]]
+      set aimedWeapons effectiveness]]
 end
 
-to display-division [team]
-  ifelse team = 0 [ set color cyan ] [ set color red ]
+to display-division [allegiance]
+  ifelse allegiance = 0 [ set color black ] [ set color red ]
   if pxcor mod 2 = 0
     [ set ycor ycor - 0.5 ]
-  set shape "flag"
+  set shape "circle"
 end
 
 to go
-  ask patches [
-    ask cells-here [
-      let neighb hex-neighbors
-        ask divisions-here [
-          move-to one-of neighb 
-        ]
-    ]
-    
-  ]
+;  ask patches [
+;    ask cells-here [
+;      let neighb hex-neighbors
+;        ask divisions-here [
+;          move-to one-of neighb 
+;        ]
+;    ]
+;    
+;  ]
+
+  move-armies
   tick
 end
 
@@ -145,22 +159,15 @@ to add-divisions
   ;add-division 29 10 1
   ;add-division 30 8 1
   
+  ;German 8th
+  add-division 15 8 166000 .3 0
   
-  add-division 18 5 1
-  add-division 18 2 1
-  add-division 18 3 1
-  add-division 20 3 1
-  add-division 21 3 1
-  add-division 21 5 1
-  add-division 16 3 1
-  add-division 21 2 1
+  ;Russian 1st
+  add-division 19 2 206000 .1 1
   
+  ;Russian 2nd
+  add-division 28 19 206000 .1 1
   
-  add-division 14 4 0
-  add-division 15 6 0
-  add-division 17 7 0
-  add-division 20 8 0
-  add-division 23 6 0
 end
 
 ; example railway
@@ -191,6 +198,13 @@ to add-rail
 end
 
 
+to move-armies
+  ask divisions [
+    approachEnemy self
+  ]
+end
+
+
 
 ;Combat procedures
 ;attacker and defender are both divisions
@@ -207,16 +221,10 @@ to attack [attacker defender]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
-  let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker) * ([morale] of attacker) )
+  let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
+  let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
+  
   ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
-  
-  let defendDamage ([troops] of defender * ([aimedWeapons] of defender) * ([morale] of defender))
-  ask attacker [set troops (troops - defendDamage)]
-  
-  set attackDamage ([troops] of attacker * ([unaimedWeapons] of attacker) *  ([morale] of attacker))
-  ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
-  
-  set defendDamage ([troops] of defender * ([unaimedWeapons] of defender) *  ([morale] of defender))
   ask attacker [set troops (troops - defendDamage)]
   
   if [troops] of attacker < 0
@@ -227,17 +235,57 @@ to attack [attacker defender]
   [
     ask defender [die]
   ]
+ 
+  
+end
+
+to approachEnemy [division]
+  let teamNumber [team] of division
+  
+  ask division [
+   let closest min-one-of (divisions with [team != teamNumber]) [distance myself]
+   if closest != nobody [
+     face closest
+     forward 1
+     let pclosest min-one-of (cells with [count turtles-here with [breed = division] = 0]) [distance myself]
+     move-to pclosest
+     if distance closest < 5 [
+       attack myself closest
+     ]
+   ]
+  ]
+  
+  
+  
+;  create-queuenodes 1 []
+;  create-pathnodes 1 [
+;    setxy [x] of division [y] of division
+;  ]
+;  
+;  while [length] of queuenodes > 0 [
+;    let tempPathNode = item 
+;  ]
+;5      while Q is not empty:
+;6          t ← Q.dequeue()
+;7          if t is what we are looking for:
+;8              return t
+;9          for all edges e in G.adjacentEdges(t) do
+;12             u ← G.adjacentVertex(t,e)
+;13             if u is not marked:
+;14                  mark u
+;15                  enqueue u onto Q
+;16     return none
   
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-947
-483
+1193
+639
 -1
 -1
-17.0
+23.0
 1
 10
 1
@@ -307,6 +355,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+31
+167
+203
+200
+mapSize
+mapSize
+1
+50
+23
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
