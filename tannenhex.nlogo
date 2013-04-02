@@ -6,7 +6,6 @@ breed [ queuenodes queuenode ]
 undirected-link-breed [rail-links rail-link]
 globals []
 
-
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
   n              ;; used to store a count of white neighbors
@@ -19,12 +18,11 @@ divisions-own [
   troops              ;; Actual troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
-]
-rail-links-own [
+  target              ;; [x y]
 ]
 
-artilleries-own [
-]
+rail-links-own []
+artilleries-own []
 
 pathnodes-own [
   x
@@ -32,10 +30,7 @@ pathnodes-own [
   previousNode  ;; Previous node in the path 
 ]
 
-queuenodes-own [
-  pathnode
-]
-
+queuenodes-own [ pathnode ]
 
 to setup
   clear-all
@@ -46,7 +41,6 @@ to setup
   add-divisions
   reset-ticks
 end
-
 
 ;;Set up the grid
 to setup-grid
@@ -67,18 +61,12 @@ to setup-grid
         [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
 end
 
-
 ;;Initialize weapon firepower values
 to setup-weapons
   ;For each division, add the corresponding firepower value for each weapon it has
   let rifle 1
   let maxim 100
-  
-  
-  
-  
 end
-
 
 to add-terrain
   let data []
@@ -88,8 +76,7 @@ to add-terrain
   file-close 
   
   resize-world 0 (length ((item 0 data)) - 1) 0 ((length data) - 1)
-
-  ; here's the logic for coloring cells
+  
   ask patches
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
@@ -105,12 +92,9 @@ end
 to color-terr [ col ] ask cells-here [ set color col ] end
 
 to add-rail-link [ xa ya xb yb ]
-  ask patch xa ya [
-    ask cells-here [
-      create-rail-link-with one-of cells-on patch xb yb [
-        set color yellow
-        set shape "line2" 
-      ]]]
+  ask patch xa ya [ 
+    ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
+  ]
 end
 
 to add-division [ xco yco introops effectiveness allegiance ]
@@ -118,7 +102,8 @@ to add-division [ xco yco introops effectiveness allegiance ]
       set team allegiance
       set troops introops
       set unaimedWeapons 0
-      set aimedWeapons effectiveness]]
+      set aimedWeapons effectiveness
+      set target [-1 -1]]]
 end
 
 to display-division [allegiance]
@@ -129,36 +114,13 @@ to display-division [allegiance]
 end
 
 to go
-;  ask patches [
-;    ask cells-here [
-;      let neighb hex-neighbors
-;        ask divisions-here [
-;          move-to one-of neighb 
-;        ]
-;    ]
-;    
-;  ]
-
   move-armies
   tick
 end
 
-
 ; stuff that pretty much just contains data goes down here.
 ; we can turn this all into text files easily
-
-; these are just example divisions
 to add-divisions
-  ; north
-  ;add-division 22 22  1
-  ;add-division 22 19 0
-  ;add-division 27 20  1
-  ;add-division 28 21 1
-  ; south
-  ;add-division 32 13 0
-  ;add-division 29 10 1
-  ;add-division 30 8 1
-  
   ;German 8th
   add-division 15 8 166000 .3 0
   
@@ -167,7 +129,6 @@ to add-divisions
   
   ;Russian 2nd
   add-division 28 19 206000 .1 1
-  
 end
 
 ; example railway
@@ -197,14 +158,17 @@ to add-rail
   add-rail-link 11 11 12 11
 end
 
-
 to move-armies
-  ask divisions [
-    approachEnemy self
-  ]
+  set-targets
+  ask divisions [ approach self ]
 end
 
-
+to set-targets
+  ask divisions [
+    let teamNumber [team] of self
+    set target min-one-of (divisions with [team != teamNumber]) [distance myself]
+  ]
+end
 
 ;Combat procedures
 ;attacker and defender are both divisions
@@ -215,77 +179,38 @@ to attack [attacker defender]
   ; Look at terrain of the defenders, assign a bonus, which is basically a defensive multiplier
   let dTerrainBonus 1
   
-  ask defender [ ask patch-here [ ask cells-here[ 
-        if terrain = 0 [set dTerrainBonus 2]
-  ]]]
+  ask defender [ ask patch-here [ ask cells-here[ if terrain = 0 [set dTerrainBonus 2] ]]]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
   let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
   let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
-  
   ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
   ask attacker [set troops (troops - defendDamage)]
-  
-  if [troops] of attacker < 0
-  [
-    ask attacker [die]
-  ]
-  if [troops] of defender < 0
-  [
-    ask defender [die]
-  ]
- 
-  
+  if [troops] of attacker < 0 [ ask attacker [die] ]
+  if [troops] of defender < 0 [ ask defender [die] ]
 end
 
-to approachEnemy [division]
-  let teamNumber [team] of division
-  
+to approach [division]
   ask division [
-   let closest min-one-of (divisions with [team != teamNumber]) [distance myself]
-   if closest != nobody [
-     face closest
+   if target != nobody [
+     face target
      forward 1
      let pclosest min-one-of (cells with [count turtles-here with [breed = division] = 0]) [distance myself]
      move-to pclosest
-     if distance closest < 5 [
-       attack myself closest
-     ]
-   ]
-  ]
-  
-  
-  
-;  create-queuenodes 1 []
-;  create-pathnodes 1 [
-;    setxy [x] of division [y] of division
-;  ]
-;  
-;  while [length] of queuenodes > 0 [
-;    let tempPathNode = item 
-;  ]
-;5      while Q is not empty:
-;6          t ← Q.dequeue()
-;7          if t is what we are looking for:
-;8              return t
-;9          for all edges e in G.adjacentEdges(t) do
-;12             u ← G.adjacentVertex(t,e)
-;13             if u is not marked:
-;14                  mark u
-;15                  enqueue u onto Q
-;16     return none
-  
+     if distance target < 5 [
+       attack myself target
+     ]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-1193
-639
+906
+457
 -1
 -1
-23.0
+16.0
 1
 10
 1
@@ -365,7 +290,7 @@ mapSize
 mapSize
 1
 50
-23
+16
 1
 1
 NIL
