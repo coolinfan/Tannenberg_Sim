@@ -3,6 +3,8 @@ breed [ divisions division ]
 breed [ artilleries artillery ]
 breed [ pathnodes pathnode ]
 breed [ queuenodes queuenode ]
+breed [ dead-divisions dead-division ]
+
 undirected-link-breed [rail-links rail-link]
 globals []
 
@@ -16,9 +18,15 @@ cells-own [
 divisions-own [
   team
   troops              ;; Actual troop count
+  maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
   target              ;; [x y]
+]
+
+dead-divisions-own [
+  team
+  troops
 ]
 
 rail-links-own []
@@ -35,7 +43,6 @@ queuenodes-own [ pathnode ]
 to setup
   clear-all
   setup-grid
-  setup-weapons
   add-terrain
   ;add-rail
   add-divisions
@@ -46,27 +53,23 @@ end
 to setup-grid
   set-patch-size mapSize
   set-default-shape cells "hex"
+  set-default-shape divisions "division"
+  set-default-shape dead-divisions "x"
   
   ask patches
     [ sprout-cells 1
-        [ set size 1.33
-          set color green - 3  ;; dark gray
-          ;; shift even columns down
-          if pxcor mod 2 = 0
-            [ set ycor ycor - 0.5 ] ] ]
+      [ set size 1.32
+        set color green - 3  ;; dark gray
+                             ;; shift even columns down
+        if pxcor mod 2 = 0
+          [ set ycor ycor - 0.5 ] ] ]
   ;; set up the hex-neighbors agentsets
   ask cells
     [ ifelse pxcor mod 2 = 0
-        [ set hex-neighbors cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
-        [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
+      [ set hex-neighbors cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
+      [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
 end
 
-;;Initialize weapon firepower values
-to setup-weapons
-  ;For each division, add the corresponding firepower value for each weapon it has
-  let rifle 1
-  let maxim 100
-end
 
 to add-terrain
   let data []
@@ -86,7 +89,7 @@ to add-terrain
             if-else terrain = 2 [ color-terr yellow + 3 ] [
               if-else terrain = 3 [color-terr brown + 4 ] [
                 if-else terrain = 4 [ color-terr green + 4 ] [
-              color-terr green - 5 ] ] ] ] ] ] ]
+                  color-terr green - 5 ] ] ] ] ] ] ]
 end
 
 to color-terr [ col ] ask cells-here [ set color col ] end
@@ -99,18 +102,18 @@ end
 
 to add-division [ xco yco introops effectiveness allegiance ]
   ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
-      set team allegiance
-      set troops introops
-      set unaimedWeapons 0
-      set aimedWeapons effectiveness
-      set target [-1 -1]]]
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set unaimedWeapons 0
+    set aimedWeapons effectiveness
+    set target [-1 -1]]]
 end
 
 to display-division [allegiance]
   ifelse allegiance = 0 [ set color black ] [ set color red ]
   if pxcor mod 2 = 0
     [ set ycor ycor - 0.5 ]
-  set shape "circle"
 end
 
 to go
@@ -122,35 +125,35 @@ end
 ; we can turn this all into text files easily
 to add-divisions
   ;German 8th
-  add-division 15 8 30000 .4 0
-  add-division 13 6 30000 .4 0
-  add-division 11 7 30000 .4 0
-  add-division 8 8 30000 .4 0
-  add-division 13 8 30000 .4 0
-  add-division 11 6 30000 .4 0
-  add-division 8 7 30000 .4 0
-  add-division 8 4 30000 .4 0
-;  add-division 7 1 30000 .6 0
-;  add-division 5 2 30000 .6 0
-;  add-division 9 8 30000 .6 0
+  add-division 15 8 30000 .04 0
+  add-division 13 6 30000 .04 0
+  add-division 11 7 30000 .04 0
+  add-division 8 8 30000 .04 0
+  add-division 13 8 30000 .04 0
+  add-division 11 6 30000 .04 0
+  add-division 8 7 30000 .04 0
+  add-division 8 4 30000 .04 0
+  ;  add-division 7 1 30000 .6 0
+  ;  add-division 5 2 30000 .6 0
+  ;  add-division 9 8 30000 .6 0
   
   ;Russian 1st
-  add-division 28 25 - headStart 30000 .3 1
-  add-division 26 24 - headStart 30000 .3 1
-  add-division 24 25 - headStart 30000 .3 1
-  add-division 22 21 - headStart 30000 .3 1
-  add-division 26 25 - headStart 30000 .3 1
-  add-division 25 24 - headStart 30000 .3 1
-  add-division 23 21 - headStart 30000 .3 1
-  add-division 21 21 - headStart 30000 .3 1
+  add-division 28 25 - headStart 30000 .03 1
+  add-division 26 24 - headStart 30000 .03 1
+  add-division 24 25 - headStart 30000 .03 1
+  add-division 22 21 - headStart 30000 .03 1
+  add-division 26 25 - headStart 30000 .03 1
+  add-division 25 24 - headStart 30000 .03 1
+  add-division 23 21 - headStart 30000 .03 1
+  add-division 21 21 - headStart 30000 .03 1
   
   ;Russian 2nd
-  add-division 19 2 40000 .1 1
-  add-division 18 2 40000 .1 1
-  add-division 16 2 40000 .1 1
-  add-division 14 2 40000 .1 1
-  add-division 15 3 40000 .1 1
-  add-division 17 4 40000 .1 1
+  add-division 19 2 40000 .01 1
+  add-division 18 2 40000 .01 1
+  add-division 16 2 40000 .01 1
+  add-division 14 2 40000 .01 1
+  add-division 15 3 40000 .01 1
+  add-division 17 4 40000 .01 1
 end
 
 to move-armies
@@ -176,34 +179,46 @@ to attack [attacker defender]
   let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
   
   ;ask attacker [set troops (troops - defendDamage)]
-  ask defender [set troops (troops - (attackDamage))]
+  ask defender [set troops (round troops - (attackDamage))]
   
   ;if [troops] of attacker < 0 [ ask attacker [die] ]
-  if [troops] of defender < 0 [ ask defender [die] ]
+  
+  if-else [troops] of defender < 0 [ ask defender [die] ]
+  [
+    if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
+      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-divisions 1 [
+        set troops [troops] of defender
+        set team [team] of defender
+        display-division team
+      ]
+      ]
+      ask defender [die]
+    ]
+  ]
 end
 
 to approach [division]
   ask division [
-   if target != nobody [
-     if-else distance target < 2 [ attack myself target ]
-     [
-     face target
-     let cell-here one-of cells-here
-     forward 1
-     let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0) and terrain != 1]) [distance myself]
-     if pclosest != nobody [
-     move-to pclosest
-     ]]]]
+    if target != nobody [
+      if-else distance target < 2 [ attack myself target ]
+      [
+        face target
+        let cell-here one-of cells-here
+        forward 1
+        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
+        if pclosest != nobody [
+          move-to pclosest
+        ]]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-2300
-1341
+1193
+639
 -1
 -1
-50.0
+23.0
 1
 10
 1
@@ -283,7 +298,7 @@ mapSize
 mapSize
 1
 50
-50
+23
 1
 1
 NIL
@@ -303,6 +318,17 @@ headstart
 1
 NIL
 HORIZONTAL
+
+MONITOR
+58
+303
+184
+348
+NIL
+count dead-divisions
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -403,6 +429,18 @@ cylinder
 false
 0
 Circle -7500403 true true 0 0 300
+
+division
+false
+14
+Rectangle -16777216 true true 30 75 270 240
+Rectangle -1 true false 45 90 255 225
+Line -16777216 true 105 30 135 60
+Line -16777216 true 135 30 105 60
+Line -16777216 true 165 60 195 30
+Line -16777216 true 165 30 195 60
+Line -16777216 true 45 90 255 225
+Line -16777216 true 45 225 255 90
 
 dot
 false
