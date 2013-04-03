@@ -58,7 +58,7 @@ to setup-grid
   
   ask patches
     [ sprout-cells 1
-      [ set size 1.32
+      [ set size 1.33
         set color green - 3  ;; dark gray
                              ;; shift even columns down
         if pxcor mod 2 = 0
@@ -101,6 +101,8 @@ to add-rail-link [ xa ya xb yb ]
 end
 
 to add-division [ xco yco introops effectiveness allegiance ]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1] ] ] ]
   ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
     set team allegiance
     set troops introops
@@ -148,12 +150,12 @@ to add-divisions
   add-division 21 21 - headStart 30000 .03 1
   
   ;Russian 2nd
-  add-division 19 2 40000 .01 1
-  add-division 18 2 40000 .01 1
-  add-division 16 2 40000 .01 1
-  add-division 14 2 40000 .01 1
-  add-division 15 3 40000 .01 1
-  add-division 17 4 40000 .01 1
+  add-division 19 2 40000 .02 1
+  add-division 18 2 40000 .02 1
+  add-division 16 2 40000 .02 1
+  add-division 14 2 40000 .02 1
+  add-division 15 3 40000 .02 1
+  add-division 17 4 40000 .02 1
 end
 
 to move-armies
@@ -164,19 +166,20 @@ end
 to set-targets
   ask divisions [
     let teamNumber [team] of self
+    let neighbor one-of cells-here 
     set target min-one-of (divisions with [team != teamNumber]) [distance myself]
   ]
 end
 
 ;Combat procedures
 ;attacker and defender are both divisions
-to attack [attacker defender]
+to attack [attacker defender proportion]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
   
   ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
-  let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
+  let attackDamage ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
   
   ;ask attacker [set troops (troops - defendDamage)]
   ask defender [set troops (round troops - (attackDamage))]
@@ -200,7 +203,7 @@ end
 to approach [division]
   ask division [
     if target != nobody [
-      if-else distance target < 2 [ attack myself target ]
+      if-else distance target < 2 [ attack myself target 1 ]
       [
         face target
         let cell-here one-of cells-here
@@ -318,17 +321,6 @@ headstart
 1
 NIL
 HORIZONTAL
-
-MONITOR
-58
-303
-184
-348
-NIL
-count dead-divisions
-17
-1
-11
 
 @#$#@#$#@
 ## WHAT IS IT?
