@@ -49,7 +49,7 @@ to setup-grid
   
   ask patches
     [ sprout-cells 1
-        [ set size 1.2
+        [ set size 1.33
           set color green - 3  ;; dark gray
           ;; shift even columns down
           if pxcor mod 2 = 0
@@ -81,10 +81,10 @@ to add-terrain
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
       [ set terrain item (xcor) (item (max-pycor - ycor) data) 
-        if-else terrain = 0 [ color-terr green - 3 ] [
-          if-else terrain = 1 [ color-terr blue ] [
+        if-else terrain = 0 [ color-terr green + 3 ] [
+          if-else terrain = 1 [ color-terr blue + 3 ] [
             if-else terrain = 2 [ color-terr yellow + 3 ] [
-              if-else terrain = 3 [color-terr brown ] [
+              if-else terrain = 3 [color-terr brown + 4 ] [
                 if-else terrain = 4 [ color-terr green + 4 ] [
               color-terr green - 5 ] ] ] ] ] ] ]
 end
@@ -122,35 +122,35 @@ end
 ; we can turn this all into text files easily
 to add-divisions
   ;German 8th
-  add-division 15 8 40000 .6 0
-  add-division 13 6 40000 .6 0
-  add-division 11 7 40000 .6 0
-  add-division 8 8 40000 .6 0
-  add-division 13 8 40000 .6 0
-  add-division 11 6 40000 .6 0
-  add-division 8 7 40000 .6 0
-  add-division 8 4 40000 .6 0
-  add-division 7 1 40000 .6 0
-;  add-division 5 2 40000 .6 0
-;  add-division 9 8 40000 .6 0
+  add-division 15 8 30000 .4 0
+  add-division 13 6 30000 .4 0
+  add-division 11 7 30000 .4 0
+  add-division 8 8 30000 .4 0
+  add-division 13 8 30000 .4 0
+  add-division 11 6 30000 .4 0
+  add-division 8 7 30000 .4 0
+  add-division 8 4 30000 .4 0
+;  add-division 7 1 30000 .6 0
+;  add-division 5 2 30000 .6 0
+;  add-division 9 8 30000 .6 0
   
   ;Russian 1st
-  add-division 28 25 - headStart 50000 .2 1
-  add-division 26 24 - headStart 50000 .2 1
-  add-division 24 25 - headStart 50000 .2 1
-  add-division 22 21 - headStart 50000 .2 1
-  add-division 26 25 - headStart 50000 .2 1
-  add-division 25 24 - headStart 50000 .2 1
-  add-division 23 21 - headStart 50000 .2 1
-  add-division 21 21 - headStart 50000 .2 1
+  add-division 28 25 - headStart 30000 .3 1
+  add-division 26 24 - headStart 30000 .3 1
+  add-division 24 25 - headStart 30000 .3 1
+  add-division 22 21 - headStart 30000 .3 1
+  add-division 26 25 - headStart 30000 .3 1
+  add-division 25 24 - headStart 30000 .3 1
+  add-division 23 21 - headStart 30000 .3 1
+  add-division 21 21 - headStart 30000 .3 1
   
   ;Russian 2nd
-  add-division 19 2 50000 .2 1
-  add-division 18 2 50000 .2 1
-  add-division 16 2 50000 .2 1
-  add-division 14 2 50000 .2 1
-  add-division 15 3 50000 .2 1
-  add-division 17 4 50000 .2 1
+  add-division 19 2 40000 .1 1
+  add-division 18 2 40000 .1 1
+  add-division 16 2 40000 .1 1
+  add-division 14 2 40000 .1 1
+  add-division 15 3 40000 .1 1
+  add-division 17 4 40000 .1 1
 end
 
 to move-armies
@@ -168,15 +168,16 @@ end
 ;Combat procedures
 ;attacker and defender are both divisions
 to attack [attacker defender]
-  let dTerrainBonus 1
-  ask defender [ ask patch-here [ ask cells-here[ if terrain = 0 [set dTerrainBonus 2] ]]]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
+  
+  ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
   let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
-  let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
-  ask defender [set troops (troops - (attackDamage))]
+  
   ;ask attacker [set troops (troops - defendDamage)]
+  ask defender [set troops (troops - (attackDamage))]
+  
   ;if [troops] of attacker < 0 [ ask attacker [die] ]
   if [troops] of defender < 0 [ ask defender [die] ]
 end
@@ -198,11 +199,11 @@ end
 GRAPHICS-WINDOW
 240
 10
-1193
-639
+2300
+1341
 -1
 -1
-23.0
+50.0
 1
 10
 1
@@ -282,7 +283,7 @@ mapSize
 mapSize
 1
 50
-23
+50
 1
 1
 NIL
@@ -297,7 +298,7 @@ headstart
 headstart
 0
 20
-13
+0
 1
 1
 NIL
