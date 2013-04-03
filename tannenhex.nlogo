@@ -135,14 +135,6 @@ to add-divisions
   add-division 9 8 40000 .3 0
   
   ;Russian 1st
-  add-division 19 2 50000 .1 1
-  add-division 18 2 50000 .1 1
-  add-division 16 2 50000 .1 1
-  add-division 14 2 50000 .1 1
-  add-division 15 3 50000 .1 1
-  add-division 11 4 50000 .1 1
-  
-  ;Russian 2nd
   add-division 28 19 50000 .1 1
   add-division 26 18 50000 .1 1
   add-division 24 19 50000 .1 1
@@ -151,6 +143,14 @@ to add-divisions
   add-division 25 18 50000 .1 1
   add-division 23 15 50000 .1 1
   add-division 21 15 50000 .1 1
+  
+  ;Russian 2nd
+  add-division 19 2 50000 .1 1
+  add-division 18 2 50000 .1 1
+  add-division 16 2 50000 .1 1
+  add-division 14 2 50000 .1 1
+  add-division 15 3 50000 .1 1
+  add-division 11 4 50000 .1 1
 end
 
 to move-armies
