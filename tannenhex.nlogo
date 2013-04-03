@@ -122,40 +122,35 @@ end
 ; we can turn this all into text files easily
 to add-divisions
   ;German 8th
-  add-division 15 8 166000 .3 0
+  add-division 15 8 40000 .3 0
+  add-division 13 6 40000 .3 0
+  add-division 11 7 40000 .3 0
+  add-division 8 8 40000 .3 0
+  add-division 13 8 40000 .3 0
+  add-division 11 6 40000 .3 0
+  add-division 8 7 40000 .3 0
+  add-division 8 4 40000 .3 0
+  add-division 7 1 40000 .3 0
+  add-division 5 2 40000 .3 0
+  add-division 9 8 40000 .3 0
   
   ;Russian 1st
-  add-division 19 2 206000 .1 1
+  add-division 19 2 50000 .1 1
+  add-division 18 2 50000 .1 1
+  add-division 16 2 50000 .1 1
+  add-division 14 2 50000 .1 1
+  add-division 15 3 50000 .1 1
+  add-division 11 4 50000 .1 1
   
   ;Russian 2nd
-  add-division 28 19 206000 .1 1
-end
-
-; example railway
-to add-rail
-  add-rail-link 14 13 14 22
-  add-rail-link 14 14 14 21
-  add-rail-link 14 20 13 21
-  add-rail-link 13 20 12 21
-  add-rail-link 12 20 11 21
-  add-rail-link 11 20 11 19
-  add-rail-link 11 19 11 18
-  add-rail-link 11 18 11 17
-  add-rail-link 11 17 10 17
-  add-rail-link 10 17 9 17
-  add-rail-link 9 17  8 17
-  add-rail-link 8 17 8 16
-  add-rail-link 8 16 7 16
-  add-rail-link 7 16 7 15
-  add-rail-link 7 15 7 14
-  add-rail-link 7 14 7 13
-  add-rail-link 7 13 7 12
-  add-rail-link 7 12 7 11
-  add-rail-link 7 11 8 11
-  add-rail-link 8 11 9 11
-  add-rail-link 9 11 10 11
-  add-rail-link 9 11 11 11
-  add-rail-link 11 11 12 11
+  add-division 28 19 50000 .1 1
+  add-division 26 18 50000 .1 1
+  add-division 24 19 50000 .1 1
+  add-division 22 15 50000 .1 1
+  add-division 26 19 50000 .1 1
+  add-division 25 18 50000 .1 1
+  add-division 23 15 50000 .1 1
+  add-division 21 15 50000 .1 1
 end
 
 to move-armies
@@ -178,7 +173,6 @@ to attack [attacker defender]
   
   ; Look at terrain of the defenders, assign a bonus, which is basically a defensive multiplier
   let dTerrainBonus 1
-  
   ask defender [ ask patch-here [ ask cells-here[ if terrain = 0 [set dTerrainBonus 2] ]]]
   
   ;Unaimed fire calculations performed first
@@ -196,11 +190,9 @@ to approach [division]
    if target != nobody [
      face target
      forward 1
-     let pclosest min-one-of (cells with [count turtles-here with [breed = division] = 0]) [distance myself]
+     let pclosest min-one-of (cells with [(count turtles-here with [breed = division] = 0) and terrain != 1]) [distance myself]
      move-to pclosest
-     if distance target < 5 [
-       attack myself target
-     ]]]
+     if distance target < 5 [ attack myself target ]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
