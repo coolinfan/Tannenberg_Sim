@@ -122,35 +122,35 @@ end
 ; we can turn this all into text files easily
 to add-divisions
   ;German 8th
-  add-division 15 8 40000 .3 0
-  add-division 13 6 40000 .3 0
-  add-division 11 7 40000 .3 0
-  add-division 8 8 40000 .3 0
-  add-division 13 8 40000 .3 0
-  add-division 11 6 40000 .3 0
-  add-division 8 7 40000 .3 0
-  add-division 8 4 40000 .3 0
-  add-division 7 1 40000 .3 0
-  add-division 5 2 40000 .3 0
-  add-division 9 8 40000 .3 0
+  add-division 15 8 40000 .6 0
+  add-division 13 6 40000 .6 0
+  add-division 11 7 40000 .6 0
+  add-division 8 8 40000 .6 0
+  add-division 13 8 40000 .6 0
+  add-division 11 6 40000 .6 0
+  add-division 8 7 40000 .6 0
+  add-division 8 4 40000 .6 0
+  add-division 7 1 40000 .6 0
+;  add-division 5 2 40000 .6 0
+;  add-division 9 8 40000 .6 0
   
   ;Russian 1st
-  add-division 28 19 50000 .1 1
-  add-division 26 18 50000 .1 1
-  add-division 24 19 50000 .1 1
-  add-division 22 15 50000 .1 1
-  add-division 26 19 50000 .1 1
-  add-division 25 18 50000 .1 1
-  add-division 23 15 50000 .1 1
-  add-division 21 15 50000 .1 1
+  add-division 28 25 - headStart 50000 .2 1
+  add-division 26 24 - headStart 50000 .2 1
+  add-division 24 25 - headStart 50000 .2 1
+  add-division 22 21 - headStart 50000 .2 1
+  add-division 26 25 - headStart 50000 .2 1
+  add-division 25 24 - headStart 50000 .2 1
+  add-division 23 21 - headStart 50000 .2 1
+  add-division 21 21 - headStart 50000 .2 1
   
   ;Russian 2nd
-  add-division 19 2 50000 .1 1
-  add-division 18 2 50000 .1 1
-  add-division 16 2 50000 .1 1
-  add-division 14 2 50000 .1 1
-  add-division 15 3 50000 .1 1
-  add-division 11 4 50000 .1 1
+  add-division 19 2 50000 .2 1
+  add-division 18 2 50000 .2 1
+  add-division 16 2 50000 .2 1
+  add-division 14 2 50000 .2 1
+  add-division 15 3 50000 .2 1
+  add-division 17 4 50000 .2 1
 end
 
 to move-armies
@@ -168,10 +168,6 @@ end
 ;Combat procedures
 ;attacker and defender are both divisions
 to attack [attacker defender]
-  ; TO ADD:
-  ; more intelligent unaimed weapon damage calculations (try to figure out density of target)
-  
-  ; Look at terrain of the defenders, assign a bonus, which is basically a defensive multiplier
   let dTerrainBonus 1
   ask defender [ ask patch-here [ ask cells-here[ if terrain = 0 [set dTerrainBonus 2] ]]]
   
@@ -179,30 +175,34 @@ to attack [attacker defender]
   ;Attacker performs attrition on the defender first
   let attackDamage ([troops] of attacker * ([aimedWeapons] of attacker))
   let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
-  ask defender [set troops (troops - (attackDamage / dTerrainBonus))]
-  ask attacker [set troops (troops - defendDamage)]
-  if [troops] of attacker < 0 [ ask attacker [die] ]
+  ask defender [set troops (troops - (attackDamage))]
+  ;ask attacker [set troops (troops - defendDamage)]
+  ;if [troops] of attacker < 0 [ ask attacker [die] ]
   if [troops] of defender < 0 [ ask defender [die] ]
 end
 
 to approach [division]
   ask division [
    if target != nobody [
+     if-else distance target < 2 [ attack myself target ]
+     [
      face target
+     let cell-here one-of cells-here
      forward 1
-     let pclosest min-one-of (cells with [(count turtles-here with [breed = division] = 0) and terrain != 1]) [distance myself]
+     let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0) and terrain != 1]) [distance myself]
+     if pclosest != nobody [
      move-to pclosest
-     if distance target < 5 [ attack myself target ]]]
+     ]]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-906
-457
+1193
+639
 -1
 -1
-16.0
+23.0
 1
 10
 1
@@ -282,7 +282,22 @@ mapSize
 mapSize
 1
 50
-16
+23
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+32
+222
+204
+255
+headstart
+headstart
+0
+20
+13
 1
 1
 NIL
@@ -291,9 +306,7 @@ HORIZONTAL
 @#$#@#$#@
 ## WHAT IS IT?
 
-This demonstrates how to make a model that uses a hexagonal grid of cells.
-
-The cellular automaton rules used produce a snowflake-like pattern.
+This is a simulation of the battle of Tannenberg in 1914.
 
 ## HOW IT WORKS
 
