@@ -83,6 +83,7 @@ to add-terrain
   
   resize-world 0 (length ((item 0 data)) - 1) 0 ((length data) - 1)
   
+  ; Set the colors of the hexes
   ask patches
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
@@ -95,6 +96,7 @@ to add-terrain
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
 
+;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
 
 to add-rail-link [ xa ya xb yb ]
@@ -103,6 +105,8 @@ to add-rail-link [ xa ya xb yb ]
   ]
 end
 
+
+;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
 to add-division [ xco yco introops effectiveness allegiance ]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
@@ -115,19 +119,24 @@ to add-division [ xco yco introops effectiveness allegiance ]
     set target [-1 -1]]]
 end
 
+;; Move a division into position on the hex, and set its color
 to display-division [allegiance]
   ifelse allegiance = 0 [ set color black ] [ set color red ]
   if pxcor mod 2 = 0
     [ set ycor ycor - 0.5 ]
 end
 
-to go
+to step
   move-armies
   tick
 end
 
-; stuff that pretty much just contains data goes down here.
-; we can turn this all into text files easily
+to go
+  step
+end
+
+
+; Add divisions
 to add-divisions
   ;German 8th
   add-division 15 8 30000 .04 0
@@ -161,6 +170,9 @@ to add-divisions
   add-division 17 4 40000 .02 1
 end
 
+
+; Army Control procedures: Movement, Targetting
+
 to move-armies
   set-targets
   ask divisions [ approach self ]
@@ -175,7 +187,9 @@ to set-targets
 end
 
 ;Combat procedures
-;attacker and defender are both divisions
+
+; An attacker attacks the defender with a proportion of his firepower.
+; Russian surrender.  No Germans were ever captured, so no Germans surrender.
 to attack [attacker defender proportion]
   
   ;Unaimed fire calculations performed first
@@ -203,7 +217,10 @@ to attack [attacker defender proportion]
   ]
 end
 
+
 to approach [division]
+  
+  ; TODO: Implement Breadth-First-Search to find shortest path to enemy
   ask division [
     if target != nobody [
       if-else distance target < 2 [ attack myself target 1 ]
@@ -211,10 +228,10 @@ to approach [division]
         face target
         let cell-here one-of cells-here
         forward 1
-        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
+        ]let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
         if pclosest != nobody [
           move-to pclosest
-        ]]]]
+        ]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
