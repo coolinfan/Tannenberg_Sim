@@ -1,13 +1,14 @@
-breed [ cells cell ]
-breed [ divisions division ]
-breed [ artilleries artillery ]
-breed [ pathnodes pathnode ]
+breed [ cells cell ] ;Hexagonal cells
+breed [ divisions division ] ;represents an infantry division
+breed [ artilleries artillery ] ;represents an artillery brigade
+breed [ dead-divisions dead-division ] ;represents a captured division
+breed [ pathnodes pathnode ] 
 breed [ queuenodes queuenode ]
-breed [ dead-divisions dead-division ]
 
 undirected-link-breed [rail-links rail-link]
 globals []
 
+;Define instance variables of the different turtles
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
   n              ;; used to store a count of white neighbors
@@ -40,6 +41,8 @@ pathnodes-own [
 
 queuenodes-own [ pathnode ]
 
+
+;; Set up the simulation
 to setup
   clear-all
   setup-grid
@@ -70,10 +73,10 @@ to setup-grid
       [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
 end
 
-
+;; Resize the world and set the hexagon tiles' colors based on input terrain type
 to add-terrain
   let data []
-  file-open "tannenhexmap2.txt"
+  file-open "tannenhexmap.txt"
   while [ not file-at-end? ] [
     set data lput file-read data ]
   file-close 
@@ -102,7 +105,7 @@ end
 
 to add-division [ xco yco introops effectiveness allegiance ]
   let loc-set 0
-  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1] ] ] ]
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
   ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
     set team allegiance
     set troops introops
@@ -217,11 +220,11 @@ end
 GRAPHICS-WINDOW
 240
 10
-1193
-639
+1275
+691
 -1
 -1
-23.0
+25.0
 1
 10
 1
@@ -301,7 +304,7 @@ mapSize
 mapSize
 1
 50
-23
+25
 1
 1
 NIL
