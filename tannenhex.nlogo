@@ -23,6 +23,7 @@ divisions-own [
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
   target              ;; [x y]
+  neighb-enemies      ;; agent list of enemy divisions in neighboring hexes
 ]
 
 dead-divisions-own [
@@ -38,7 +39,6 @@ pathnodes-own [
   previousNode  ;; Previous node in the path 
   visited
 ]
-
 
 ;; Set up the simulation
 to setup
@@ -88,8 +88,8 @@ to add-terrain
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
       [ set terrain item (xcor) (item (max-pycor - ycor) data) 
-        if-else terrain = 0 [ color-terr green + 3 ] [
-          if-else terrain = 1 [ color-terr blue + 3 ] [
+        if-else terrain = 0 [ color-terr green + 3 ] [ 
+          if-else terrain = 1 [ color-terr blue + 2 ] [ ;water
             if-else terrain = 2 [ color-terr yellow + 3 ] [
               if-else terrain = 3 [color-terr brown + 4 ] [
                 if-else terrain = 4 [ color-terr green + 4 ] [
@@ -99,17 +99,10 @@ end
 ;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
 
-to add-rail-link [ xa ya xb yb ]
-  ask patch xa ya [ 
-    ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
-  ]
-end
-
 ;; Move a division into position on the hex, and set its color
 to display-division [allegiance]
   ifelse allegiance = 0 [ set color black ] [ set color red ]
-  if pxcor mod 2 = 0
-    [ set ycor ycor - 0.5 ]
+  if pxcor mod 2 = 0 [ set ycor ycor - 0.5 ]
 end
 
 to step
@@ -120,42 +113,6 @@ end
 to go
   step
 end
-
-
-; Add divisions
-to add-divisions
-  ;German 8th
-  add-division 15 8 30000 .06 0 0
-  add-division 13 6 30000 .06 0 0
-  add-division 11 7 30000 .06 0 0
-  add-division 8 8 30000 .06 0 0
-  add-division 13 8 30000 .06 0 0
-  add-division 11 6 30000 .06 0 0
-  add-division 8 7 30000 .06 0 0
-  add-division 8 4 30000 .06 0 0
-  ;  add-division 7 1 30000 .6 0
-  ;  add-division 5 2 30000 .6 0
-  ;  add-division 9 8 30000 .6 0
-  
-  ;  Russian 1st
-  ;  add-division 28 25 30000 ruseffectiveness 1 1
-  ;  add-division 26 24 30000 ruseffectiveness 1 1
-  ;  add-division 24 25 30000 ruseffectiveness 1 1
-  ;  add-division 22 21 30000 ruseffectiveness 1 1
-  ;  add-division 26 25 30000 ruseffectiveness 1 1
-  ;  add-division 25 24 30000 ruseffectiveness 1 1
-  ;  add-division 23 21 30000 ruseffectiveness 1 1
-  ;  add-division 21 21 30000 ruseffectiveness 1 1
-  
-  ;Russian 2nd
-  add-division 19 2 40000 .02 1 2
-  add-division 18 2 40000 .02 1 2
-  add-division 16 2 40000 .02 1 2
-  add-division 14 2 40000 .02 1 2
-  add-division 15 3 40000 .02 1 2
-  add-division 17 4 40000 .02 1 2
-end
-
 
 ;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
 to add-division [ xco yco introops effectiveness allegiance ingroup]
@@ -168,15 +125,22 @@ to add-division [ xco yco introops effectiveness allegiance ingroup]
     set unaimedWeapons 0
     set aimedWeapons effectiveness
     set target [-1 -1]
-    set group ingroup]]
+    set group ingroup
+    set neighb-enemies []]]
 end
 
-
-; Army Control procedures: Movement, Targetting
-
+; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to move-armies
   set-targets
+  set-neighb-enemies
   ask divisions [ approach self ]
+end
+
+to set-neighb-enemies
+  ask divisions [
+    let teamNumber [team] of self
+    set neighb-enemies (divisions with [team != teamNumber and distance myself <= 1])
+  ]
 end
 
 to set-targets
@@ -187,47 +151,41 @@ to set-targets
   ]
 end
 
-;Combat procedures
+;Combat procedures;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; An attacker attacks the defender with a proportion of his firepower.
-to attack [attacker defender proportion]
-  
-  ;Unaimed fire calculations performed first
-  ;Attacker performs attrition on the defender first
-  
-  ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
+; An attacker attacks all adjacent defenders with a proportion of his firepower.
+to agg-attack [attacker proportion]
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
   
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
-  [set german-losses (german-losses + attackDamage)]
+    [set german-losses (german-losses + attackDamage)]
   
-  ;ask attacker [set troops (troops - defendDamage)]
-  ask defender [set troops (round troops - (attackDamage))]
-  
-  ;if [troops] of attacker < 0 [ ask attacker [die] ]
-  
-  if-else [troops] of defender < 0 [ ask defender [die] ]
-  [
-    if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
-      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-divisions 1 [
-        set troops [troops] of defender
-        set team [team] of defender
-        display-division team
-        set russian-losses (russian-losses + [troops] of defender)
+  let defenders [neighb-enemies] of attacker ;agent-set of defending divisions
+  let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
+  ask defenders [
+    let troopFrac troops / defTroops ;the percentage of troops in this division out of all defending divisions
+    ask self [set troops (round troops - (troopFrac * attackDamage))] ;scale attack damage by the percentage of troops in this division
+    if-else [troops] of self < 0 [ ask self [die] ]
+    [
+      if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
+        ask patch [xcor] of self [ycor] of self [ sprout-dead-divisions 1 [
+          set troops [troops] of self
+          set team [team] of self
+          display-division team
+          set russian-losses (russian-losses + [troops] of self)
+        ]]
+      ask self [die]
       ]
-      ]
-      ask defender [die]
     ]
   ]
 end
 
-
 to approach [division]
-  
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
   ask division [
     if target != nobody [
-      if-else distance target <= 1 [ attack myself target 1 ]
+      ;if-else distance target <= 1 [ attack myself target 1 ]
+      if-else distance target <= 1 [ agg-attack myself 1 ]
       [
         face target
         let cell-here one-of cells-here
@@ -269,7 +227,6 @@ to-report bfs [start goal]
           set visited false
         ]
       ]
-      
     ]
     
     ; "Dequeue" one hex
@@ -282,24 +239,98 @@ to-report bfs [start goal]
   
   set currentNode one-of pathNodes with [hex = goal]
   
-  while [[hex] of [previousNode] of currentNode != start]
-  [
-    set currentNode [previousNode] of currentNode
-  ]
+  while [[hex] of [previousNode] of currentNode != start] [ set currentNode [previousNode] of currentNode ]
   let returnval [hex] of currentNode
   ask pathNodes [die]
   
   report returnVal
 end
+
+
+; Add divisions
+to add-divisions
+  ;German 8th
+  add-division 15 8 30000 .06 0 0
+  add-division 13 6 30000 .06 0 0
+  add-division 11 7 30000 .06 0 0
+  add-division 8 8 30000 .06 0 0
+  add-division 13 8 30000 .06 0 0
+  add-division 11 6 30000 .06 0 0
+  add-division 8 7 30000 .06 0 0
+  add-division 8 4 30000 .06 0 0
+  ;  add-division 7 1 30000 .6 0
+  ;  add-division 5 2 30000 .6 0
+  ;  add-division 9 8 30000 .6 0
+  
+  ;  Russian 1st
+  ;  add-division 28 25 30000 ruseffectiveness 1 1
+  ;  add-division 26 24 30000 ruseffectiveness 1 1
+  ;  add-division 24 25 30000 ruseffectiveness 1 1
+  ;  add-division 22 21 30000 ruseffectiveness 1 1
+  ;  add-division 26 25 30000 ruseffectiveness 1 1
+  ;  add-division 25 24 30000 ruseffectiveness 1 1
+  ;  add-division 23 21 30000 ruseffectiveness 1 1
+  ;  add-division 21 21 30000 ruseffectiveness 1 1
+  
+  ;Russian 2nd
+  add-division 19 2 40000 .02 1 2
+  add-division 18 2 40000 .02 1 2
+  add-division 16 2 40000 .02 1 2
+  add-division 14 2 40000 .02 1 2
+  add-division 15 3 40000 .02 1 2
+  add-division 17 4 40000 .02 1 2
+end
+
+;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; An attacker attacks the defender with a proportion of his firepower.
+to attack [attacker defender proportion]
+  
+  ;Unaimed fire calculations performed first
+  ;Attacker performs attrition on the defender first
+  
+  ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
+  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
+  
+  if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
+  [set german-losses (german-losses + attackDamage)]
+  
+  ;ask attacker [set troops (troops - defendDamage)]
+  ask defender [set troops (round troops - (attackDamage))]
+  
+  ;if [troops] of attacker < 0 [ ask attacker [die] ]
+  
+  if-else [troops] of defender < 0 [ ask defender [die] ]
+  [
+    if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
+      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-divisions 1 [
+        set troops [troops] of defender
+        set team [team] of defender
+        display-division team
+        set russian-losses (russian-losses + [troops] of defender)
+      ]
+      ]
+      ask defender [die]
+    ]
+  ]
+end
+
+to add-rail-link [ xa ya xb yb ]
+  ask patch xa ya [ 
+    ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-1193
-639
+1029
+535
 -1
 -1
-23.0
+19.0
 1
 10
 1
@@ -379,7 +410,7 @@ mapSize
 mapSize
 1
 50
-23
+19
 1
 1
 NIL
