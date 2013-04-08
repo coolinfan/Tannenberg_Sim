@@ -2,11 +2,10 @@ breed [ cells cell ] ;Hexagonal cells
 breed [ divisions division ] ;represents an infantry division
 breed [ artilleries artillery ] ;represents an artillery brigade
 breed [ dead-divisions dead-division ] ;represents a captured division
-breed [ pathnodes pathnode ] 
-breed [ queuenodes queuenode ]
+breed [ pathnodes pathnode ]
 
 undirected-link-breed [rail-links rail-link]
-globals []
+globals [german-losses russian-losses]
 
 ;Define instance variables of the different turtles
 cells-own [
@@ -17,7 +16,8 @@ cells-own [
 ]
 
 divisions-own [
-  team
+  team                ;; Which Faction this division is a part of
+  group               ;; Different groups willl exhibit different behaviors or follow different orders
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
@@ -34,12 +34,9 @@ rail-links-own []
 artilleries-own []
 
 pathnodes-own [
-  x
-  y
+  hex
   previousNode  ;; Previous node in the path 
 ]
-
-queuenodes-own [ pathnode ]
 
 
 ;; Set up the simulation
@@ -49,6 +46,8 @@ to setup
   add-terrain
   ;add-rail
   add-divisions
+  set german-losses 0
+  set russian-losses 0
   reset-ticks
 end
 
@@ -105,20 +104,6 @@ to add-rail-link [ xa ya xb yb ]
   ]
 end
 
-
-;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
-to add-division [ xco yco introops effectiveness allegiance ]
-  let loc-set 0
-  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
-    set team allegiance
-    set troops introops
-    set maxTroops troops
-    set unaimedWeapons 0
-    set aimedWeapons effectiveness
-    set target [-1 -1]]]
-end
-
 ;; Move a division into position on the hex, and set its color
 to display-division [allegiance]
   ifelse allegiance = 0 [ set color black ] [ set color red ]
@@ -139,35 +124,50 @@ end
 ; Add divisions
 to add-divisions
   ;German 8th
-  add-division 15 8 30000 .04 0
-  add-division 13 6 30000 .04 0
-  add-division 11 7 30000 .04 0
-  add-division 8 8 30000 .04 0
-  add-division 13 8 30000 .04 0
-  add-division 11 6 30000 .04 0
-  add-division 8 7 30000 .04 0
-  add-division 8 4 30000 .04 0
+  add-division 15 8 30000 .06 0 0
+  add-division 13 6 30000 .06 0 0
+  add-division 11 7 30000 .06 0 0
+  add-division 8 8 30000 .06 0 0
+  add-division 13 8 30000 .06 0 0
+  add-division 11 6 30000 .06 0 0
+  add-division 8 7 30000 .06 0 0
+  add-division 8 4 30000 .06 0 0
   ;  add-division 7 1 30000 .6 0
   ;  add-division 5 2 30000 .6 0
   ;  add-division 9 8 30000 .6 0
   
-  ;Russian 1st
-  add-division 28 25 - headStart 30000 .03 1
-  add-division 26 24 - headStart 30000 .03 1
-  add-division 24 25 - headStart 30000 .03 1
-  add-division 22 21 - headStart 30000 .03 1
-  add-division 26 25 - headStart 30000 .03 1
-  add-division 25 24 - headStart 30000 .03 1
-  add-division 23 21 - headStart 30000 .03 1
-  add-division 21 21 - headStart 30000 .03 1
+  ;  Russian 1st
+  ;  add-division 28 25 30000 ruseffectiveness 1 1
+  ;  add-division 26 24 30000 ruseffectiveness 1 1
+  ;  add-division 24 25 30000 ruseffectiveness 1 1
+  ;  add-division 22 21 30000 ruseffectiveness 1 1
+  ;  add-division 26 25 30000 ruseffectiveness 1 1
+  ;  add-division 25 24 30000 ruseffectiveness 1 1
+  ;  add-division 23 21 30000 ruseffectiveness 1 1
+  ;  add-division 21 21 30000 ruseffectiveness 1 1
   
   ;Russian 2nd
-  add-division 19 2 40000 .02 1
-  add-division 18 2 40000 .02 1
-  add-division 16 2 40000 .02 1
-  add-division 14 2 40000 .02 1
-  add-division 15 3 40000 .02 1
-  add-division 17 4 40000 .02 1
+  add-division 19 2 40000 .02 1 2
+  add-division 18 2 40000 .02 1 2
+  add-division 16 2 40000 .02 1 2
+  add-division 14 2 40000 .02 1 2
+  add-division 15 3 40000 .02 1 2
+  add-division 17 4 40000 .02 1 2
+end
+
+
+;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
+to add-division [ xco yco introops effectiveness allegiance ingroup]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
+  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set unaimedWeapons 0
+    set aimedWeapons effectiveness
+    set target [-1 -1]
+    set group ingroup]]
 end
 
 
@@ -189,14 +189,16 @@ end
 ;Combat procedures
 
 ; An attacker attacks the defender with a proportion of his firepower.
-; Russian surrender.  No Germans were ever captured, so no Germans surrender.
 to attack [attacker defender proportion]
   
   ;Unaimed fire calculations performed first
   ;Attacker performs attrition on the defender first
   
   ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
-  let attackDamage ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
+  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
+  
+  if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
+  [set german-losses (german-losses + attackDamage)]
   
   ;ask attacker [set troops (troops - defendDamage)]
   ask defender [set troops (round troops - (attackDamage))]
@@ -210,6 +212,7 @@ to attack [attacker defender proportion]
         set troops [troops] of defender
         set team [team] of defender
         display-division team
+        set russian-losses (russian-losses + [troops] of defender)
       ]
       ]
       ask defender [die]
@@ -223,25 +226,77 @@ to approach [division]
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
   ask division [
     if target != nobody [
-      if-else distance target < 2 [ attack myself target 1 ]
+      if-else distance target <= 1 [ attack myself target 1 ]
       [
         face target
         let cell-here one-of cells-here
         forward 1
-        ]let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
+        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
         if pclosest != nobody [
           move-to pclosest
-        ]]]
+        ]
+      ]
+    ]
+  ]
+end
+
+; Run a breadth-first search for distance from the start to the goal
+; Inputs are hexes that are not water
+; goal is reachable by starting at start and moving between adjacent hexes that are not water
+; Returns the next step to take
+to-report bfs [start goal]
+  ;Start position is the head
+  let currentNode nobody
+  create-pathnodes 1 [
+    set hex start
+    set previousNode nobody
+  ]
+  set currentNode one-of pathNodes
+  
+  while [count pathnodes with [hex = goal] = 0]
+  [
+    
+    ; "Enqueue" all the neighbors that have not already been added and that are not water
+    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1])
+    [
+      if count pathnodes with [hex = ?] = 0
+      [
+        create-pathnodes 1 [
+          set hex ?
+          set previousNode [hex] of currentNode
+        ]
+      ]
+      
+    ]
+    
+    ; "Dequeue" one hex
+    let tempHex [hex] of currentNode
+    ask currentNode [die]
+    set currentNode one-of pathNodes with [hex = item 0 (sort [hex-neighbors] of tempHex)]
+  ]
+  
+  ; Now that the goal has been found, find your way back to the beginning
+  
+  set currentNode one-of cells with [hex = goal]
+  
+  while [[hex] of [previousNode] of currentNode != start]
+  [
+    set currentNode [previousNode] of currentNode
+  ]
+  let returnval [hex] of currentNode
+  ask pathNodes [die]
+  
+  report returnVal
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 240
 10
-1275
-691
+1193
+639
 -1
 -1
-25.0
+23.0
 1
 10
 1
@@ -313,34 +368,123 @@ NIL
 1
 
 SLIDER
-31
-167
-203
+24
 200
+209
+233
 mapSize
 mapSize
 1
 50
-25
+23
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-32
-222
-204
-255
+23
+282
+208
+315
 headstart
 headstart
-0
-20
-0
-1
+26
+29
+26
+.2
 1
 NIL
 HORIZONTAL
+
+SLIDER
+24
+361
+209
+394
+ruseffectiveness
+ruseffectiveness
+0
+.1
+0.03
+.005
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+26
+182
+139
+200
+Map Size
+11
+0.0
+1
+
+TEXTBOX
+23
+263
+213
+291
+Russian 1st Army Departs on August:
+11
+0.0
+1
+
+TEXTBOX
+26
+342
+203
+370
+Russian 1st Army effectiveness
+11
+0.0
+1
+
+MONITOR
+22
+470
+119
+515
+German Troops
+sum [troops] of divisions with [team = 0]
+0
+1
+11
+
+MONITOR
+22
+530
+119
+575
+Russian Troops
+sum [troops] of divisions with [team = 1]
+17
+1
+11
+
+MONITOR
+130
+470
+226
+515
+German Losses
+german-losses
+0
+1
+11
+
+MONITOR
+130
+531
+226
+576
+Russian Losses
+russian-losses
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
