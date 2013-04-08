@@ -36,6 +36,7 @@ artilleries-own []
 pathnodes-own [
   hex
   previousNode  ;; Previous node in the path 
+  visited
 ]
 
 
@@ -250,6 +251,7 @@ to-report bfs [start goal]
   create-pathnodes 1 [
     set hex start
     set previousNode nobody
+    set visited false
   ]
   set currentNode one-of pathNodes
   
@@ -263,7 +265,8 @@ to-report bfs [start goal]
       [
         create-pathnodes 1 [
           set hex ?
-          set previousNode [hex] of currentNode
+          set previousNode currentNode
+          set visited false
         ]
       ]
       
@@ -271,13 +274,13 @@ to-report bfs [start goal]
     
     ; "Dequeue" one hex
     let tempHex [hex] of currentNode
-    ask currentNode [die]
-    set currentNode one-of pathNodes with [hex = item 0 (sort [hex-neighbors] of tempHex)]
+    ask currentNode [set visited true]
+    set currentNode item 0 (sort pathNodes with [visited = false])
   ]
   
   ; Now that the goal has been found, find your way back to the beginning
   
-  set currentNode one-of cells with [hex = goal]
+  set currentNode one-of pathNodes with [hex = goal]
   
   while [[hex] of [previousNode] of currentNode != start]
   [
