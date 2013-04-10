@@ -6,7 +6,7 @@ breed [ dead-divisions dead-division ] ;represents a captured division
 breed [ pathnodes pathnode ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses waypoints tick-length tick-distance]
+globals [german-losses russian-losses waypoints tick-length tick-distance]  ;<(^_^)>  ]
 
 ;Define instance variables of the different turtles
 cells-own [
@@ -74,7 +74,7 @@ to setup-grid
   
   ask patches
     [ sprout-cells 1
-      [ set size 1.33
+      [ set size 1.4
         set color green - 3  ;; dark gray
                              ;; shift even columns down
         if pxcor mod 2 = 0
@@ -101,11 +101,11 @@ to add-terrain
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
       [ set terrain item (xcor) (item (max-pycor - ycor) data) 
-        if-else terrain = 0 [ color-terr green + 3 ] [ 
+        if-else terrain = 0 [ color-terr yellow + 3 ] [ 
           if-else terrain = 1 [ color-terr blue + 2 ] [ ;water
             if-else terrain = 2 [ color-terr yellow + 3 ] [
-              if-else terrain = 3 [color-terr brown + 4 ] [
-                if-else terrain = 4 [ color-terr green + 4 ] [
+              if-else terrain = 3 [color-terr yellow + 3 ] [
+                if-else terrain = 4 [ color-terr  yellow + 3 ] [
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
 
@@ -120,6 +120,7 @@ end
 
 to step
   move-armies
+  ask divisions [ set size (troops / 30000) + 0.3 ]
   tick
 end
 
@@ -204,12 +205,14 @@ to agg-attack [attacker proportion]
   let victoryRatio ([troops] of attacker / defTroops) ;ensure no division by 0
   if victoryRatio > 3 [ set troops (round troops - (0.1 * defTroops)) ]
   ask defenders [
-    let troopFrac troops / defTroops ;the percentage of troops in this division out of all defending divisions
-    ask self [set troops (round troops - (troopFrac * attackDamage))] ;scale attack damage by the percentage of troops in this division
+    let troopFrac (troops / defTroops) ;the percentage of troops in this division out of all defending divisions
+    let losses (troopFrac * attackDamage)
+    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this division
     if-else (victoryRatio > 3)[ ask self [die] ]
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
         ask patch [xcor] of self [ycor] of self [ sprout-dead-divisions 1 [
+          set size 0.8
           set troops [troops] of self
           set team 1
           display-division team
@@ -466,13 +469,13 @@ to add-rail-link [ xa ya xb yb ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-240
-10
-1234
-665
+242
+35
+990
+534
 -1
 -1
-24.0
+18.0
 1
 10
 1
@@ -544,30 +547,30 @@ NIL
 1
 
 SLIDER
-24
-200
-209
-233
+25
+173
+210
+206
 mapSize
 mapSize
 1
 50
-24
+18
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-23
-282
-208
-315
+25
+237
+210
+270
 headstart
 headstart
 26
 29
-26
+26.8
 .2
 1
 NIL
@@ -575,9 +578,9 @@ HORIZONTAL
 
 SLIDER
 24
-416
+372
 209
-449
+405
 ruseffectiveness
 ruseffectiveness
 0
@@ -590,19 +593,19 @@ HORIZONTAL
 
 TEXTBOX
 26
-182
+157
 139
-200
+175
 Map Size
 11
 0.0
 1
 
 TEXTBOX
-23
-263
-213
-291
+25
+218
+230
+246
 Russian 1st Army Departs on August:
 11
 0.0
@@ -610,9 +613,9 @@ Russian 1st Army Departs on August:
 
 TEXTBOX
 26
-397
+353
 203
-425
+381
 Russian 1st Army effectiveness
 11
 0.0
@@ -620,9 +623,9 @@ Russian 1st Army effectiveness
 
 PLOT
 18
-459
+416
 218
-590
+547
 Troops Remaining
 NIL
 NIL
@@ -639,9 +642,9 @@ PENS
 
 SLIDER
 24
-348
+309
 196
-381
+342
 russpeed
 russpeed
 0
@@ -653,10 +656,10 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-29
-328
-198
-356
+26
+287
+195
+315
 Russian 1st Miles/Day
 11
 0.0
