@@ -619,10 +619,10 @@ Russian 1st Army effectiveness
 1
 
 PLOT
-21
-412
-221
-562
+18
+459
+218
+590
 Troops Remaining
 NIL
 NIL
