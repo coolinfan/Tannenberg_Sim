@@ -5,7 +5,7 @@ breed [ dead-divisions dead-division ] ;represents a captured division
 breed [ pathnodes pathnode ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses]
+globals [german-losses russian-losses waypoints tick-length tick-distance]
 
 ;Define instance variables of the different turtles
 cells-own [
@@ -21,9 +21,10 @@ divisions-own [
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
-  unaimedWeapons      ;; Strength of weapons for indirect fire (artillery, howitzers)
   target              ;; [x y]
   neighb-enemies      ;; agent list of enemy divisions in neighboring hexes
+  distanceNorth       ;; When a Russian 1st division is north of the map, this is the number of miles they have left to travel
+  nextCell            ;; used for BFS
 ]
 
 dead-divisions-own [
@@ -44,12 +45,23 @@ pathnodes-own [
 to setup
   clear-all
   setup-grid
+  setup-waypoints
   add-terrain
+  ;tick-length in hours
+  set tick-length 3
+  ;tick distance
+  set tick-distance (russpeed / (24 / tick-length))
   ;add-rail
   add-divisions
   set german-losses 0
   set russian-losses 0
   reset-ticks
+end
+
+to setup-waypoints
+  ;; 
+  ;;
+  
 end
 
 ;;Set up the grid
@@ -114,26 +126,22 @@ to go
   step
 end
 
-;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
-to add-division [ xco yco introops effectiveness allegiance ingroup]
-  let loc-set 0
-  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
-    set team allegiance
-    set troops introops
-    set maxTroops troops
-    set unaimedWeapons 0
-    set aimedWeapons effectiveness
-    set target [-1 -1]
-    set group ingroup
-    set neighb-enemies []]]
-end
-
 ; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to move-armies
   set-targets
   set-neighb-enemies
-  ask divisions [ approach self ]
+  approach-armies
+  ask (divisions with [distanceNorth > 0]) [ travel self ]
+end
+
+to approach-armies
+  foreach sort(divisions with [distanceNorth = 0]) [ 
+    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here != 0])
+    [
+      bfs (one-of cells-on ?) (one-of cells-on [target] of ?) (?)
+    ]
+    ask ? [approach ?]
+  ]
 end
 
 to set-neighb-enemies
@@ -147,7 +155,7 @@ to set-targets
   ask divisions [
     let teamNumber [team] of self
     let neighbor one-of cells-here 
-    set target min-one-of (divisions with [team != teamNumber]) [distance myself]
+    set target min-one-of (divisions with [team != teamNumber and distanceNorth = 0]) [distance myself]
   ]
 end
 
@@ -164,52 +172,55 @@ to agg-attack [attacker proportion]
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   ask defenders [
     let troopFrac troops / defTroops ;the percentage of troops in this division out of all defending divisions
-    ask self [set troops (round troops - (troopFrac * attackDamage))] ;scale attack damage by the percentage of troops in this division
+    ask self [set troops (round (troops - (troopFrac * attackDamage)))] ;scale attack damage by the percentage of troops in this division
     if-else [troops] of self < 0 [ ask self [die] ]
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
         ask patch [xcor] of self [ycor] of self [ sprout-dead-divisions 1 [
           set troops [troops] of self
-          set team [team] of self
+          set team 1
           display-division team
           set russian-losses (russian-losses + [troops] of self)
         ]]
-      ask self [die]
+        ask self [die]
       ]
     ]
   ]
 end
 
+;; Approaches a divisions
 to approach [division]
-  ; TODO: Implement Breadth-First-Search to find shortest path to enemy
-  ask division [
-    if target != nobody [
-      ;if-else distance target <= 1 [ attack myself target 1 ]
-      if-else distance target <= 1 [ agg-attack myself 1 ]
-      [
-        face target
-        let cell-here one-of cells-here
-        forward 1
-        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
-        if pclosest != nobody [
-          move-to pclosest
-        ]
-      ]
+  if-else distance target <= 1 [ agg-attack myself 1 ]
+    [
+      ask division [move-to nextCell]
+    ]
+end
+
+;; Offscreen division marching
+to travel [division]
+  ask division[ 
+    set distanceNorth distanceNorth - tick-distance
+    if distanceNorth < 0[
+      set distanceNorth 0
+      show-turtle
     ]
   ]
 end
+
 
 ; Run a breadth-first search for distance from the start to the goal
 ; Inputs are hexes that are not water
 ; goal is reachable by starting at start and moving between adjacent hexes that are not water
 ; Returns the next step to take
-to-report bfs [start goal]
+to bfs [start goal div]
   ;Start position is the head
+  
   let currentNode nobody
   create-pathnodes 1 [
     set hex start
     set previousNode nobody
     set visited false
+    hide-turtle
   ]
   set currentNode one-of pathNodes
   
@@ -217,7 +228,7 @@ to-report bfs [start goal]
   [
     
     ; "Enqueue" all the neighbors that have not already been added and that are not water
-    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1])
+    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1 and (count divisions-here = 0 or self = goal)])
     [
       if count pathnodes with [hex = ?] = 0
       [
@@ -225,8 +236,10 @@ to-report bfs [start goal]
           set hex ?
           set previousNode currentNode
           set visited false
+          hide-turtle
         ]
       ]
+      
     ]
     
     ; "Dequeue" one hex
@@ -234,6 +247,7 @@ to-report bfs [start goal]
     ask currentNode [set visited true]
     set currentNode item 0 (sort pathNodes with [visited = false])
   ]
+  
   
   ; Now that the goal has been found, find your way back to the beginning
   
@@ -243,42 +257,117 @@ to-report bfs [start goal]
   let returnval [hex] of currentNode
   ask pathNodes [die]
   
-  report returnVal
+  ask div[set nextCell returnval]
+  
 end
 
 
 ; Add divisions
 to add-divisions
   ;German 8th
-  add-division 15 8 30000 .06 0 0
-  add-division 13 6 30000 .06 0 0
-  add-division 11 7 30000 .06 0 0
-  add-division 8 8 30000 .06 0 0
-  add-division 13 8 30000 .06 0 0
-  add-division 11 6 30000 .06 0 0
-  add-division 8 7 30000 .06 0 0
-  add-division 8 4 30000 .06 0 0
-  ;  add-division 7 1 30000 .6 0
-  ;  add-division 5 2 30000 .6 0
-  ;  add-division 9 8 30000 .6 0
+  ; I Corps - starts near Seeben
+  ; 1st ID
+  add-division 5 9 17500 .06 0 0
+  ; 2nd ID
+  add-division 6 10 17500 .06 0 0
+  ; XVII Corps - starts near Heilsburg
+  ; 35th ID
+  add-division 25 25 17500 .06 0 0
+  ; 36th ID
+  add-division 26 25 17500 .06 0 0
+  ; XX Corps - Tannenberg
+  ; 37th ID
+  add-division 9 12 17500 .06 0 0
+  ; 41st ID
+  add-division 8 11 17500 .06 0 0
+  ; I Reserve Corps
+  ; 1 Reserve ID - Heilsburg
+  add-division 20 25 17500 .06 0 0
+  ; 3rd Reserve ID - halfway between Osterode and Tannenberg
+  add-division 7 16 17500 .06 0 0
+  ; 36th Reserve ID - Heilsburg
+  add-division 21 25 17500 .06 0 0
   
   ;  Russian 1st
-  ;  add-division 28 25 30000 ruseffectiveness 1 1
-  ;  add-division 26 24 30000 ruseffectiveness 1 1
-  ;  add-division 24 25 30000 ruseffectiveness 1 1
-  ;  add-division 22 21 30000 ruseffectiveness 1 1
-  ;  add-division 26 25 30000 ruseffectiveness 1 1
-  ;  add-division 25 24 30000 ruseffectiveness 1 1
-  ;  add-division 23 21 30000 ruseffectiveness 1 1
-  ;  add-division 21 21 30000 ruseffectiveness 1 1
+  ;  II Corps
+  ;  26th ID
+  add-approaching-division 35 25 30000 ruseffectiveness 1 1 75
+  ;  43rd ID
+  add-approaching-division 37 25 30000 ruseffectiveness 1 1 75
+  ;  III Corps
+  ;  25th ID
+  add-approaching-division 28 25 30000 ruseffectiveness 1 1 75
+  ;  27th ID
+  add-approaching-division 27 25 30000 ruseffectiveness 1 1 75
+  ;  IV Corps
+  ;  30th ID
+  add-approaching-division 28 25 30000 ruseffectiveness 1 1 65
+  ;  40th ID
+  add-approaching-division 28 25 30000 ruseffectiveness 1 1 65
+  ;  XX Corps
+  ;  28th ID
+  add-approaching-division 28 25 30000 ruseffectiveness 1 1 80
+  ;  29th ID
+  add-approaching-division 28 25 30000 ruseffectiveness 1 1 80
+  
   
   ;Russian 2nd
-  add-division 19 2 40000 .02 1 2
-  add-division 18 2 40000 .02 1 2
-  add-division 16 2 40000 .02 1 2
-  add-division 14 2 40000 .02 1 2
-  add-division 15 3 40000 .02 1 2
-  add-division 17 4 40000 .02 1 2
+  ; I Corps - Just south of Soldau
+  ;  22nd ID
+  add-division 10 6 14800 .02 1 2
+  ;  24th ID
+  add-division 11 6 14800 .02 1 2
+  ; VI Corps - just north of Bischofsburg
+  ;  4th ID
+  add-division 25 21 14800 .02 1 2
+  ;  16th ID
+  add-division 26 21 14800 .02 1 2
+  ; XIII Corps - northeast of Orlau
+  ;  1st ID
+  add-division 16 13 14800 .02 1 2
+  ;  36th ID
+  add-division 17 13 14800 .02 1 2
+  ; XV Corps - Just south of Orlau
+  ;  6th ID
+  add-division 15 10 14800 .02 1 2
+  ;  8th ID
+  add-division 14 10 14800 .02 1 2
+  ; XXIII Corps
+  ;  3rd Guard ID - east of 2nd ID
+  add-division 15 8 14800 .02 1 2
+  ;  2nd ID - North of Lippau and South of Janushken
+  add-division 15 7 14800 .02 1 2
+end
+
+;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
+to add-division [ xco yco introops effectiveness allegiance ingroup]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
+  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set aimedWeapons effectiveness
+    set target [-1 -1]
+    set group ingroup
+    set neighb-enemies []
+    set distanceNorth 0]]
+end
+
+;; Generate an off-screen division.  xco and yco represent the space in which they will appear.
+to add-approaching-division [ xco yco introops effectiveness allegiance ingroup miles]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
+  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set aimedWeapons effectiveness
+    set target [-1 -1]
+    set group ingroup
+    set neighb-enemies []
+    set distanceNorth miles
+    hide-turtle]]
 end
 
 ;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
@@ -326,11 +415,11 @@ end
 GRAPHICS-WINDOW
 240
 10
-1029
-535
+1193
+639
 -1
 -1
-19.0
+23.0
 1
 10
 1
@@ -410,7 +499,7 @@ mapSize
 mapSize
 1
 50
-19
+23
 1
 1
 NIL
@@ -433,14 +522,14 @@ HORIZONTAL
 
 SLIDER
 24
-361
+416
 209
-394
+449
 ruseffectiveness
 ruseffectiveness
 0
 .1
-0.03
+0.035
 .005
 1
 NIL
@@ -468,9 +557,9 @@ Russian 1st Army Departs on August:
 
 TEXTBOX
 26
-342
+397
 203
-370
+425
 Russian 1st Army effectiveness
 11
 0.0
@@ -519,6 +608,31 @@ russian-losses
 17
 1
 11
+
+SLIDER
+24
+348
+196
+381
+russpeed
+russpeed
+0
+30
+12
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+29
+328
+198
+356
+Russian 1st Miles/Day
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
