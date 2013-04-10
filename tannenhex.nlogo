@@ -159,17 +159,18 @@ end
 to move-armies
   set-targets
   set-neighb-enemies
-  approach-armies
+ ; approach-armies
+  ask (divisions with [distanceNorth = 0]) [ approach self ]
   ask (divisions with [distanceNorth > 0]) [ travel self ]
 end
 
 to approach-armies
   foreach sort(divisions with [distanceNorth = 0]) [ 
-    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here [team != [team] of ?] != 0])
+    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here = 0 and terrain != 1])
     [
       bfs (one-of cells-on ?) (one-of cells-on [target] of ?) (?)
     ]
-    ask ? [approach ?]
+    ask ? [approach self]
   ]
 end
 
@@ -221,11 +222,31 @@ to agg-attack [attacker proportion]
 end
 
 ;; Approaches a divisions
+;to approach
+;  
+;  if-else distance target <= 1 [ agg-attack self 1 ]
+;    [
+;      move-to nextCell
+;    ]
+;end
+
 to approach [division]
-  if-else distance target <= 1 [ agg-attack myself 1 ]
-    [
-      ask division [move-to nextCell]
+  ; TODO: Implement Breadth-First-Search to find shortest path to enemy
+  ask division [
+    if target != nobody [
+      ;if-else distance target <= 1 [ attack myself target 1 ]
+      if-else distance target <= 1 [ agg-attack myself 1 ]
+      [
+        face target
+        let cell-here one-of cells-here
+        forward 1
+        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
+        if pclosest != nobody [
+          move-to pclosest
+        ]
+      ]
     ]
+  ]
 end
 
 ;; Offscreen division marching
@@ -447,11 +468,11 @@ end
 GRAPHICS-WINDOW
 240
 10
-1193
-639
+1234
+665
 -1
 -1
-23.0
+24.0
 1
 10
 1
@@ -531,7 +552,7 @@ mapSize
 mapSize
 1
 50
-23
+24
 1
 1
 NIL
@@ -625,7 +646,7 @@ russpeed
 russpeed
 0
 30
-12
+30
 1
 1
 NIL
