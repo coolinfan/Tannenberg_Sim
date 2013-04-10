@@ -164,7 +164,7 @@ end
 
 to approach-armies
   foreach sort(divisions with [distanceNorth = 0]) [ 
-    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here != 0])
+    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here [team != [team] of ?] != 0])
     [
       bfs (one-of cells-on ?) (one-of cells-on [target] of ?) (?)
     ]
@@ -296,7 +296,6 @@ end
 ; Add divisions
 to add-divisions
   ;German 8th
-<<<<<<< HEAD
   ; I Corps - starts near Seeben
   ; 1st ID
   add-division 5 9 17500 .06 0 0
