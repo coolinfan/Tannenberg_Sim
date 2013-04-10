@@ -132,7 +132,8 @@ end
 to check-victory-conditions-for-army-surrender
   let germanEighthArmyTroops (sum [troops] of divisions with [group = 0])
   let russianSecondArmyTroops (sum [troops] of divisions with [group = 2])
-  if russianSecondArmyTroops > 0 [ set southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops ]
+  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
+  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
   
   if-else southern-german-ratio > 3 [ ;southern german victory
     let powCount (sum [troops] of divisions with [group = 2])
@@ -296,7 +297,6 @@ end
 ; Add divisions
 to add-divisions
   ;German 8th
-<<<<<<< HEAD
   ; I Corps - starts near Seeben
   ; 1st ID
   add-division 5 9 17500 .06 0 0
