@@ -1,5 +1,6 @@
 breed [ cells cell ] ;Hexagonal cells
 breed [ divisions division ] ;represents an infantry division
+breed [ armies army ] ;represents an army, made up of divisions
 breed [ artilleries artillery ] ;represents an artillery brigade
 breed [ dead-divisions dead-division ] ;represents a captured division
 breed [ pathnodes pathnode ]
@@ -124,6 +125,33 @@ end
 
 to go
   step
+  ;check-victory-conditions-for-army-surrender
+end
+
+;use this function if you want victory conditions to be defined on an army-by-army basis
+to check-victory-conditions-for-army-surrender
+  let germanEighthArmyTroops (sum [troops] of divisions with [group = 0])
+  let russianSecondArmyTroops (sum [troops] of divisions with [group = 2])
+  if russianSecondArmyTroops > 0 [ set southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops ]
+  
+  if-else southern-german-ratio > 3 [ ;southern german victory
+    let powCount (sum [troops] of divisions with [group = 2])
+    let powHandlers (round powCount / 10)
+    ask divisions with [group = 2] [die]
+    let totalGermanTroops sum [troops] of divisions with [group = 0]
+    ask divisions with [group = 0] [
+        let troopFrac troops / totalGermanTroops ;the percentage of troops in this division out of all russian divisions
+        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this division
+  ]] 
+  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
+      let powCount (sum [troops] of divisions with [group = 0])
+      let powHandlers (round powCount / 10)
+      ask divisions with [group = 0] [die]
+      let totalRussianTroops sum [troops] of divisions with [group = 2]
+      ask divisions with [group = 2] [
+        let troopFrac troops / totalRussianTroops ;the percentage of troops in this division out of all russian divisions
+        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this division
+  ]]]
 end
 
 ; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -170,10 +198,13 @@ to agg-attack [attacker proportion]
   
   let defenders [neighb-enemies] of attacker ;agent-set of defending divisions
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
+  if deftroops <= 1 [set defTroops 1]
+  let victoryRatio ([troops] of attacker / defTroops) ;ensure no division by 0
+  if victoryRatio > 3 [ set troops (round troops - (0.1 * defTroops)) ]
   ask defenders [
     let troopFrac troops / defTroops ;the percentage of troops in this division out of all defending divisions
-    ask self [set troops (round (troops - (troopFrac * attackDamage)))] ;scale attack damage by the percentage of troops in this division
-    if-else [troops] of self < 0 [ ask self [die] ]
+    ask self [set troops (round troops - (troopFrac * attackDamage))] ;scale attack damage by the percentage of troops in this division
+    if-else (victoryRatio > 3)[ ask self [die] ]
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
         ask patch [xcor] of self [ycor] of self [ sprout-dead-divisions 1 [
@@ -185,7 +216,7 @@ to agg-attack [attacker proportion]
         ask self [die]
       ]
     ]
-  ]
+  ]  
 end
 
 ;; Approaches a divisions
@@ -265,6 +296,7 @@ end
 ; Add divisions
 to add-divisions
   ;German 8th
+<<<<<<< HEAD
   ; I Corps - starts near Seeben
   ; 1st ID
   add-division 5 9 17500 .06 0 0
@@ -565,49 +597,24 @@ Russian 1st Army effectiveness
 0.0
 1
 
-MONITOR
-22
-470
-119
-515
-German Troops
-sum [troops] of divisions with [team = 0]
-0
-1
-11
-
-MONITOR
-22
-530
-119
-575
-Russian Troops
-sum [troops] of divisions with [team = 1]
-17
-1
-11
-
-MONITOR
-130
-470
-226
-515
-German Losses
-german-losses
-0
-1
-11
-
-MONITOR
-130
-531
-226
-576
-Russian Losses
-russian-losses
-17
-1
-11
+PLOT
+21
+412
+221
+562
+Troops Remaining
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -14070903 true "" "plot sum [troops] of divisions with [team = 0]"
+"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of divisions with [team = 1]"
 
 SLIDER
 24
