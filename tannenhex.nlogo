@@ -179,7 +179,7 @@ end
 to set-neighb-enemies
   ask units [
     let teamNumber [team] of self
-    set neighb-enemies report-adjacent-divisions with [team != teamNumber] ;(divisions with [team != teamNumber and distance myself <= 1.1])
+    set neighb-enemies report-adjacent-units with [team != teamNumber] ;(units with [team != teamNumber and distance myself <= 1.1])
   ]
 end
 
@@ -200,16 +200,16 @@ to agg-attack [attacker proportion]
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
     [set german-losses (german-losses + attackDamage)]
     
-  let defenders [neighb-enemies] of attacker ;agent-set of defending divisions
+  let defenders [neighb-enemies] of attacker ;agent-set of defending units
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   if deftroops <= 1 [set defTroops 1]
-  let victoryRatio ([troops] of attacker / defTroops) ;ensure no division by 0
+  let victoryRatio ([troops] of attacker / defTroops) ;ensure no unit by 0
   if (victoryRatio > 3) [ set troops (round troops - (0.1 * defTroops)) ] ;they will surrender
   
   ask defenders [
     let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
     let losses (troopFrac * attackDamage)
-    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this division
+    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this unit
     if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
@@ -237,7 +237,7 @@ end
 
 to approach [unit]
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
-  ask division [
+  ask unit [
     let defenders [neighb-enemies] of self
 
     if (target != nobody) [
@@ -384,10 +384,11 @@ to add-units
   ; VI Corps was harldy a factor, so not included
   
   ; XIII Corps - northeast of Orlau
-  ;  1st ID
-  add-unit 16 13 14800 .02 1 2
-  ;  36th ID
-  add-unit 17 13 14800 .02 1 2
+  add-unit 17 14 10000 .02 1 2
+  add-unit 17 15 10000 .02 1 2
+  add-unit 18 16 10000 .02 1 2
+  add-unit 18 17 10000 .02 1 2
+  add-unit 19 17 10000 .02 1 2
   
   
   ; XV Corps - Just south of Orlau
@@ -395,14 +396,8 @@ to add-units
   add-unit 15 11 10000 .02 1 2
   add-unit 15 12 10000 .02 1 2
   add-unit 16 12 10000 .02 1 2
-  add-unit 17 13 10000 .02 1 2
+  add-unit 16 13 10000 .02 1 2
   
-  
-  ; XXIII Corps
-  ;  3rd Guard ID - east of 2nd ID
-  add-unit 15 8 14800 .02 1 2
-  ;  2nd ID - North of Lippau and South of Janushken
-  add-unit 15 7 14800 .02 1 2
 end
 
 ;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
@@ -417,8 +412,9 @@ to add-unit [ xco yco introops effectiveness allegiance ingroup]
     set target [-1 -1]
     set group ingroup
     set neighb-enemies []
-    set distanceNorth 0
-    set isEngaged false]]
+    set travelTime 0
+    set isEngaged false
+    set size (troops / max-troops) + 0.2]]
 end
 
 ;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
@@ -437,10 +433,10 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup mile
     hide-turtle]]
 end
 
-to-report report-adjacent-divisions
+to-report report-adjacent-units
       ifelse pxcor mod 2 = 0
-      [ report divisions-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
-      [ report divisions-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
+      [ report units-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
+      [ report units-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
@@ -587,7 +583,7 @@ headstart
 headstart
 26
 29
-26.8
+27.8
 .2
 1
 NIL
