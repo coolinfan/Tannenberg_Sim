@@ -1,12 +1,12 @@
 breed [ cells cell ] ;Hexagonal cells
-breed [ divisions division ] ;represents an infantry division
-breed [ armies army ] ;represents an army, made up of divisions
+breed [ units unit ] ;represents an infantry unit
+breed [ armies army ] ;represents an army, made up of units
 breed [ artilleries artillery ] ;represents an artillery brigade
-breed [ dead-divisions dead-division ] ;represents a captured division
+breed [ dead-units dead-unit ] ;represents a captured unit
 breed [ pathnodes pathnode ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses waypoints tick-length tick-distance]  ;<(^_^)>  ]
+globals [german-losses russian-losses waypoints tick-length tick-distance max-troops]  ;<(^_^)>  ]
 
 ;Define instance variables of the different turtles
 cells-own [
@@ -16,19 +16,19 @@ cells-own [
   hasrail
 ]
 
-divisions-own [
-  team                ;; Which Faction this division is a part of
+units-own [
+  team                ;; Which Faction this unit is a part of
   group               ;; Different groups willl exhibit different behaviors or follow different orders
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   target              ;; [x y]
-  neighb-enemies      ;; agent list of enemy divisions in neighboring hexes
-  distanceNorth       ;; When a Russian 1st division is north of the map, this is the number of miles they have left to travel
+  neighb-enemies      ;; agent list of enemy units in neighboring hexes
+  travelTime       ;; When a Russian 1st unit is north of the map, this is the number of miles they have left to travel
   nextCell            ;; used for BFS
 ]
 
-dead-divisions-own [
+dead-units-own [
   team
   troops
 ]
@@ -50,10 +50,10 @@ to setup
   add-terrain
   ;tick-length in hours
   set tick-length 3
-  ;tick distance
-  set tick-distance (russpeed / (24 / tick-length))
+  ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
+  set max-troops 10000
   ;add-rail
-  add-divisions
+  add-units
   set german-losses 0
   set russian-losses 0
   reset-ticks
@@ -69,8 +69,8 @@ end
 to setup-grid
   set-patch-size mapSize
   set-default-shape cells "hex"
-  set-default-shape divisions "division"
-  set-default-shape dead-divisions "x"
+  set-default-shape units "unit"
+  set-default-shape dead-units "x"
   
   ask patches
     [ sprout-cells 1
@@ -112,15 +112,15 @@ end
 ;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
 
-;; Move a division into position on the hex, and set its color
-to display-division [allegiance]
+;; Move a unit into position on the hex, and set its color
+to display-unit [allegiance]
   ifelse allegiance = 0 [ set color black ] [ set color red ]
   if pxcor mod 2 = 0 [ set ycor ycor - 0.5 ]
 end
 
 to step
   move-armies
-  ask divisions [ set size (troops / 30000) + 0.3 ]
+  ask units [ set size (troops / max-troops) + 0.2 ]
   tick
 end
 
@@ -131,28 +131,28 @@ end
 
 ;use this function if you want victory conditions to be defined on an army-by-army basis
 to check-victory-conditions-for-army-surrender
-  let germanEighthArmyTroops (sum [troops] of divisions with [group = 0])
-  let russianSecondArmyTroops (sum [troops] of divisions with [group = 2])
+  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
+  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
   if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
   let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
   
   if-else southern-german-ratio > 3 [ ;southern german victory
-    let powCount (sum [troops] of divisions with [group = 2])
+    let powCount (sum [troops] of units with [group = 2])
     let powHandlers (round powCount / 10)
-    ask divisions with [group = 2] [die]
-    let totalGermanTroops sum [troops] of divisions with [group = 0]
-    ask divisions with [group = 0] [
-        let troopFrac troops / totalGermanTroops ;the percentage of troops in this division out of all russian divisions
-        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this division
+    ask units with [group = 2] [die]
+    let totalGermanTroops sum [troops] of units with [group = 0]
+    ask units with [group = 0] [
+        let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
+        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
   ]] 
   [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
-      let powCount (sum [troops] of divisions with [group = 0])
+      let powCount (sum [troops] of units with [group = 0])
       let powHandlers (round powCount / 10)
-      ask divisions with [group = 0] [die]
-      let totalRussianTroops sum [troops] of divisions with [group = 2]
-      ask divisions with [group = 2] [
-        let troopFrac troops / totalRussianTroops ;the percentage of troops in this division out of all russian divisions
-        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this division
+      ask units with [group = 0] [die]
+      let totalRussianTroops sum [troops] of units with [group = 2]
+      ask units with [group = 2] [
+        let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
+        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
   ]]]
 end
 
@@ -161,13 +161,13 @@ to move-armies
   set-targets
   set-neighb-enemies
  ; approach-armies
-  ask (divisions with [distanceNorth = 0]) [ approach self ]
-  ask (divisions with [distanceNorth > 0]) [ travel self ]
+  ask (units with [travelTime = 0]) [ approach self ]
+  ask (units with [travelTime > 0]) [ travel self ]
 end
 
 to approach-armies
-  foreach sort(divisions with [distanceNorth = 0]) [ 
-    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count divisions-here = 0 and terrain != 1])
+  foreach sort(units with [travelTime = 0]) [ 
+    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count units-here = 0 and terrain != 1])
     [
       bfs (one-of cells-on ?) (one-of cells-on [target] of ?) (?)
     ]
@@ -176,17 +176,17 @@ to approach-armies
 end
 
 to set-neighb-enemies
-  ask divisions [
+  ask units [
     let teamNumber [team] of self
-    set neighb-enemies (divisions with [team != teamNumber and distance myself <= 1])
+    set neighb-enemies (units with [team != teamNumber and distance myself <= 1])
   ]
 end
 
 to set-targets
-  ask divisions [
+  ask units [
     let teamNumber [team] of self
     let neighbor one-of cells-here 
-    set target min-one-of (divisions with [team != teamNumber and distanceNorth = 0]) [distance myself]
+    set target min-one-of (units with [team != teamNumber and travelTime = 0]) [distance myself]
   ]
 end
 
@@ -199,23 +199,23 @@ to agg-attack [attacker proportion]
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
     [set german-losses (german-losses + attackDamage)]
   
-  let defenders [neighb-enemies] of attacker ;agent-set of defending divisions
+  let defenders [neighb-enemies] of attacker ;agent-set of defending units
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   if deftroops <= 1 [set defTroops 1]
-  let victoryRatio ([troops] of attacker / defTroops) ;ensure no division by 0
+  let victoryRatio ([troops] of attacker / defTroops) ;ensure no unit by 0
   if victoryRatio > 3 [ set troops (round troops - (0.1 * defTroops)) ]
   ask defenders [
-    let troopFrac (troops / defTroops) ;the percentage of troops in this division out of all defending divisions
+    let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
     let losses (troopFrac * attackDamage)
-    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this division
+    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this unit
     if-else (victoryRatio > 3)[ ask self [die] ]
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
-        ask patch [xcor] of self [ycor] of self [ sprout-dead-divisions 1 [
+        ask patch [xcor] of self [ycor] of self [ sprout-dead-units 1 [
           set size 0.8
           set troops [troops] of self
           set team 1
-          display-division team
+          display-unit team
           set russian-losses (russian-losses + [troops] of self)
         ]]
         ask self [die]
@@ -224,7 +224,7 @@ to agg-attack [attacker proportion]
   ]  
 end
 
-;; Approaches a divisions
+;; Approaches a units
 ;to approach
 ;  
 ;  if-else distance target <= 1 [ agg-attack self 1 ]
@@ -233,9 +233,9 @@ end
 ;    ]
 ;end
 
-to approach [division]
+to approach [unit]
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
-  ask division [
+  ask unit [
     if target != nobody [
       ;if-else distance target <= 1 [ attack myself target 1 ]
       if-else distance target <= 1 [ agg-attack myself 1 ]
@@ -243,7 +243,7 @@ to approach [division]
         face target
         let cell-here one-of cells-here
         forward 1
-        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count divisions-here = 0 and count dead-divisions-here = 0) and terrain != 1]) [distance myself]
+        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count units-here = 0 and count dead-units-here = 0) and terrain != 1]) [distance myself]
         if pclosest != nobody [
           move-to pclosest
         ]
@@ -252,12 +252,12 @@ to approach [division]
   ]
 end
 
-;; Offscreen division marching
-to travel [division]
-  ask division[ 
-    set distanceNorth distanceNorth - tick-distance
-    if distanceNorth < 0[
-      set distanceNorth 0
+;; Offscreen unit marching
+to travel [unit]
+  ask unit[ 
+    set travelTime travelTime - tick-length
+    if travelTime < 0[
+      set travelTime 0
       show-turtle
     ]
   ]
@@ -284,7 +284,7 @@ to bfs [start goal div]
   [
     
     ; "Enqueue" all the neighbors that have not already been added and that are not water
-    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1 and (count divisions-here = 0 or self = goal)])
+    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1 and (count units-here = 0 or self = goal)])
     [
       if count pathnodes with [hex = ?] = 0
       [
@@ -318,88 +318,91 @@ to bfs [start goal div]
 end
 
 
-; Add divisions
-to add-divisions
+; Add units
+to add-units
   ;German 8th
   ; I Corps - starts near Seeben
-  ; 1st ID
-  add-division 5 9 17500 .06 0 0
-  ; 2nd ID
-  add-division 6 10 17500 .06 0 0
+  add-unit 4 8 8800 .06 0 0
+  add-unit 5 8 8800 .06 0 0
+  add-unit 5 7 8800 .06 0 0
+  add-unit 5 9 8800 .06 0 0
+  add-unit 6 10 8800 .06 0 0
+  
   ; XVII Corps - starts near Heilsburg
-  ; 35th ID
-  add-division 25 25 17500 .06 0 0
-  ; 36th ID
-  add-division 26 25 17500 .06 0 0
+  add-unit 22 24 8800 .06 0 0
+  add-unit 23 23 8800 .06 0 0
+  add-unit 22 23 8800 .06 0 0
+  add-unit 23 24 8800 .06 0 0
+  add-unit 21 24 8800 .06 0 0
+  
   ; XX Corps - Tannenberg
-  ; 37th ID
-  add-division 9 12 17500 .06 0 0
-  ; 41st ID
-  add-division 8 11 17500 .06 0 0
-  ; I Reserve Corps
-  ; 1 Reserve ID - Heilsburg
-  add-division 20 25 17500 .06 0 0
-  ; 3rd Reserve ID - halfway between Osterode and Tannenberg
-  add-division 7 16 17500 .06 0 0
-  ; 36th Reserve ID - Heilsburg
-  add-division 21 25 17500 .06 0 0
+  add-unit 8 12 8800 .06 0 0
+  add-unit 9 12 8800 .06 0 0
+  add-unit 10 13 8800 .06 0 0
+  add-unit 8 13 8800 .06 0 0
+  add-unit 8 11 8800 .06 0 0
+  
   
   ;  Russian 1st
-  ;  II Corps
-  ;  26th ID
-  add-approaching-division 35 25 30000 ruseffectiveness 1 1 75
-  ;  43rd ID
-  add-approaching-division 37 25 30000 ruseffectiveness 1 1 75
-  ;  III Corps
-  ;  25th ID
-  add-approaching-division 28 25 30000 ruseffectiveness 1 1 75
-  ;  27th ID
-  add-approaching-division 27 25 30000 ruseffectiveness 1 1 75
   ;  IV Corps
-  ;  30th ID
-  add-approaching-division 28 25 30000 ruseffectiveness 1 1 65
-  ;  40th ID
-  add-approaching-division 28 25 30000 ruseffectiveness 1 1 65
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  
+  ;  III Corps
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  
   ;  XX Corps
-  ;  28th ID
-  add-approaching-division 28 25 30000 ruseffectiveness 1 1 80
-  ;  29th ID
-  add-approaching-division 28 25 30000 ruseffectiveness 1 1 80
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
   
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  ;  22nd ID
-  add-division 10 6 14800 .02 1 2
-  ;  24th ID
-  add-division 11 6 14800 .02 1 2
-  ; VI Corps - just north of Bischofsburg
-  ;  4th ID
-  add-division 25 21 14800 .02 1 2
-  ;  16th ID
-  add-division 26 21 14800 .02 1 2
+  add-unit 9 5 10000 .02 1 2
+  add-unit 10 6 10000 .02 1 2
+  add-unit 10 7 10000 .02 1 2
+  add-unit 11 8 10000 .02 1 2
+  add-unit 11 9 10000 .02 1 2
+  
+  ; VI Corps was harldy a factor, so not included
+  
   ; XIII Corps - northeast of Orlau
   ;  1st ID
-  add-division 16 13 14800 .02 1 2
+  add-unit 16 13 14800 .02 1 2
   ;  36th ID
-  add-division 17 13 14800 .02 1 2
+  add-unit 17 13 14800 .02 1 2
+  
+  
   ; XV Corps - Just south of Orlau
-  ;  6th ID
-  add-division 15 10 14800 .02 1 2
-  ;  8th ID
-  add-division 14 10 14800 .02 1 2
+  add-unit 14 10 10000 .02 1 2
+  add-unit 15 11 10000 .02 1 2
+  add-unit 15 12 10000 .02 1 2
+  add-unit 16 12 10000 .02 1 2
+  add-unit 17 13 10000 .02 1 2
+  
+  
   ; XXIII Corps
   ;  3rd Guard ID - east of 2nd ID
-  add-division 15 8 14800 .02 1 2
+  add-unit 15 8 14800 .02 1 2
   ;  2nd ID - North of Lippau and South of Janushken
-  add-division 15 7 14800 .02 1 2
+  add-unit 15 7 14800 .02 1 2
 end
 
-;; Generate a division at the given position with the given troops, effectiveness, and allegiance.
-to add-division [ xco yco introops effectiveness allegiance ingroup]
+;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
+to add-unit [ xco yco introops effectiveness allegiance ingroup]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
     set team allegiance
     set troops introops
     set maxTroops troops
@@ -407,14 +410,15 @@ to add-division [ xco yco introops effectiveness allegiance ingroup]
     set target [-1 -1]
     set group ingroup
     set neighb-enemies []
-    set distanceNorth 0]]
+    set travelTime 0
+    set size (troops / max-troops) + 0.2 ]]
 end
 
-;; Generate an off-screen division.  xco and yco represent the space in which they will appear.
-to add-approaching-division [ xco yco introops effectiveness allegiance ingroup miles]
+;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
+to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup miles]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-divisions 1 [ display-division allegiance 
+  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
     set team allegiance
     set troops introops
     set maxTroops troops
@@ -422,7 +426,7 @@ to add-approaching-division [ xco yco introops effectiveness allegiance ingroup 
     set target [-1 -1]
     set group ingroup
     set neighb-enemies []
-    set distanceNorth miles
+    set travelTime miles
     hide-turtle]]
 end
 
@@ -450,10 +454,10 @@ to attack [attacker defender proportion]
   if-else [troops] of defender < 0 [ ask defender [die] ]
   [
     if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
-      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-divisions 1 [
+      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-units 1 [
         set troops [troops] of defender
         set team [team] of defender
-        display-division team
+        display-unit team
         set russian-losses (russian-losses + [troops] of defender)
       ]
       ]
@@ -471,11 +475,11 @@ end
 GRAPHICS-WINDOW
 242
 35
-990
-534
+1113
+612
 -1
 -1
-18.0
+21.0
 1
 10
 1
@@ -555,7 +559,7 @@ mapSize
 mapSize
 1
 50
-18
+21
 1
 1
 NIL
@@ -578,9 +582,9 @@ HORIZONTAL
 
 SLIDER
 24
-372
+306
 209
-405
+339
 ruseffectiveness
 ruseffectiveness
 0
@@ -606,26 +610,26 @@ TEXTBOX
 218
 230
 246
-Russian 1st Army Departs on August:
+Russian Arrival Time
 11
 0.0
 1
 
 TEXTBOX
 26
-353
+287
 203
-381
+315
 Russian 1st Army effectiveness
 11
 0.0
 1
 
 PLOT
-18
-416
-218
-547
+19
+371
+219
+502
 Troops Remaining
 NIL
 NIL
@@ -637,33 +641,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -14070903 true "" "plot sum [troops] of divisions with [team = 0]"
-"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of divisions with [team = 1]"
-
-SLIDER
-24
-309
-196
-342
-russpeed
-russpeed
-0
-30
-30
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-26
-287
-195
-315
-Russian 1st Miles/Day
-11
-0.0
-1
+"default" 1.0 0 -14070903 true "" "plot sum [troops] of units with [team = 0]"
+"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of units with [team = 1]"
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -764,18 +743,6 @@ cylinder
 false
 0
 Circle -7500403 true true 0 0 300
-
-division
-false
-14
-Rectangle -16777216 true true 30 75 270 240
-Rectangle -1 true false 45 90 255 225
-Line -16777216 true 105 30 135 60
-Line -16777216 true 135 30 105 60
-Line -16777216 true 165 60 195 30
-Line -16777216 true 165 30 195 60
-Line -16777216 true 45 90 255 225
-Line -16777216 true 45 225 255 90
 
 dot
 false
@@ -965,6 +932,14 @@ Polygon -10899396 true false 105 90 75 75 55 75 40 89 31 108 39 124 60 105 75 10
 Polygon -10899396 true false 132 85 134 64 107 51 108 17 150 2 192 18 192 52 169 65 172 87
 Polygon -10899396 true false 85 204 60 233 54 254 72 266 85 252 107 210
 Polygon -7500403 true true 119 75 179 75 209 101 224 135 220 225 175 261 128 261 81 224 74 135 88 99
+
+unit
+false
+14
+Rectangle -16777216 true true 30 75 270 240
+Rectangle -1 true false 45 90 255 225
+Line -16777216 true 45 90 255 225
+Line -16777216 true 45 225 255 90
 
 wheel
 false
