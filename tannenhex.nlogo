@@ -8,7 +8,7 @@ breed [ pathnodes pathnode ]
 undirected-link-breed [rail-links rail-link]
 globals [german-losses russian-losses waypoints tick-length tick-distance max-troops]  ;<(^_^)>  ]
 
-;Define instance variables of the different turtles
+                                                                                       ;Define instance variables of the different turtles
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
   n              ;; used to store a count of white neighbors
@@ -143,36 +143,39 @@ to check-victory-conditions-for-army-surrender
     ask units with [group = 2] [die]
     let totalGermanTroops sum [troops] of units with [group = 0]
     ask units with [group = 0] [
-        let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
-        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-  ]] 
+      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
+      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+    ]] 
   [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
-      let powCount (sum [troops] of units with [group = 0])
-      let powHandlers (round powCount / 10)
-      ask units with [group = 0] [die]
-      let totalRussianTroops sum [troops] of units with [group = 2]
-      ask units with [group = 2] [
-        let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
-        ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-  ]]]
+    let powCount (sum [troops] of units with [group = 0])
+    let powHandlers (round powCount / 10)
+    ask units with [group = 0] [die]
+    let totalRussianTroops sum [troops] of units with [group = 2]
+    ask units with [group = 2] [
+      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
+      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+    ]]]
 end
 
 ; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to move-armies
   set-targets
   set-neighb-enemies
- ; approach-armies
+  ;approach-armies
   ask (units with [travelTime = 0]) [ approach self ]
   ask (units with [travelTime > 0]) [ travel self ]
 end
 
 to approach-armies
-  foreach sort(units with [travelTime = 0]) [ 
-    if (any? ([hex-neighbors] of (one-of cells-on ?)) with [count units-here = 0 and terrain != 1])
+  ask(units with [travelTime = 0]) [ 
+    let myteam team
+    if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
     [
-      bfs (one-of cells-on ?) (one-of cells-on [target] of ?) (?)
+      if is-turtle? target [
+        bfs (one-of cells-here) (one-of cells-on target) (self)
+      ]
     ]
-    ask ? [approach self]
+    approach self
   ]
 end
 
@@ -199,7 +202,7 @@ to agg-attack [attacker proportion]
   
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
     [set german-losses (german-losses + attackDamage)]
-    
+  
   let defenders [neighb-enemies] of attacker ;agent-set of defending units
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   if deftroops <= 1 [set defTroops 1]
@@ -239,13 +242,29 @@ to approach [unit]
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
   ask unit [
     let defenders [neighb-enemies] of self
-
+    
     if (target != nobody) [
       ;if-else distance target <= 1 [ attack myself target 1 ]
       if-else (count defenders > 0) [ 
         set isEngaged true 
         agg-attack myself 1 ]
       [
+        ; If there are neighboring allied units in combat, reinforce them
+        if count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 1
+        [
+          foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
+            if troops > 0 and [troops] of ? < max-troops[
+              let one troops
+              let two max-troops - [troops] of ?
+              let minimum min list one two
+              ask ? [set troops troops + minimum]
+              set troops troops - minimum
+              if troops = 0 [
+                die
+              ]
+            ]
+          ]
+        ]
         set isEngaged false
         face target
         let cell-here one-of cells-here
@@ -279,7 +298,7 @@ to bfs [start goal div]
   ;Start position is the head
   
   let currentNode nobody
-  create-pathnodes 1 [
+  hatch-pathnodes 1 [
     set hex start
     set previousNode nobody
     set visited false
@@ -293,9 +312,9 @@ to bfs [start goal div]
     ; "Enqueue" all the neighbors that have not already been added and that are not water
     foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1 and (count units-here = 0 or self = goal)])
     [
-      if count pathnodes with [hex = ?] = 0
+      if count pathnodes-here with [hex = ?] = 0
       [
-        create-pathnodes 1 [
+        hatch-pathnodes 1 [
           set hex ?
           set previousNode currentNode
           set visited false
@@ -308,7 +327,14 @@ to bfs [start goal div]
     ; "Dequeue" one hex
     let tempHex [hex] of currentNode
     ask currentNode [set visited true]
-    set currentNode item 0 (sort pathNodes with [visited = false])
+    
+    if-else not (count (pathNodes with [visited = false]) = 0)
+    [
+      set currentNode item 0 (sort pathNodes with [visited = false])
+    ]
+    [
+      stop
+    ]
   ]
   
   
@@ -327,6 +353,8 @@ end
 
 ; Add units
 to add-units
+  ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
+  
   ;German 8th
   ; I Corps - starts near Seeben
   add-unit 4 8 8800 .06 0 0
@@ -401,6 +429,7 @@ to add-units
 end
 
 ;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
+;; add-unit x-coordinate y-coordinate troops effectiveness team(0 is german, 1 is russian) group
 to add-unit [ xco yco introops effectiveness allegiance ingroup]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
@@ -434,9 +463,9 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup mile
 end
 
 to-report report-adjacent-units
-      ifelse pxcor mod 2 = 0
-      [ report units-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
-      [ report units-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
+  ifelse pxcor mod 2 = 0
+    [ report units-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
+    [ report units-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
