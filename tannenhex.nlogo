@@ -26,6 +26,7 @@ units-own [
   neighb-enemies      ;; agent list of enemy units in neighboring hexes
   travelTime       ;; When a Russian 1st unit is north of the map, this is the number of miles they have left to travel
   nextCell            ;; used for BFS
+  isEngaged           ;; is currently attacking (is adjacent to an enemy)
 ]
 
 dead-units-own [
@@ -95,17 +96,17 @@ to add-terrain
   file-close 
   
   resize-world 0 (length ((item 0 data)) - 1) 0 ((length data) - 1)
-  
+  let def-color green + 3
   ; Set the colors of the hexes
   ask patches
     [ ask cells-here
       ; This is basing the coordinates of the array off the size of the physical world, which is dangerous
       [ set terrain item (xcor) (item (max-pycor - ycor) data) 
-        if-else terrain = 0 [ color-terr yellow + 3 ] [ 
+        if-else terrain = 0 [ color-terr def-color ] [ 
           if-else terrain = 1 [ color-terr blue + 2 ] [ ;water
-            if-else terrain = 2 [ color-terr yellow + 3 ] [
-              if-else terrain = 3 [color-terr yellow + 3 ] [
-                if-else terrain = 4 [ color-terr  yellow + 3 ] [
+            if-else terrain = 2 [ color-terr def-color ] [
+              if-else terrain = 3 [color-terr def-color ] [
+                if-else terrain = 4 [ color-terr  def-color ] [
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
 
@@ -178,7 +179,7 @@ end
 to set-neighb-enemies
   ask units [
     let teamNumber [team] of self
-    set neighb-enemies (units with [team != teamNumber and distance myself <= 1])
+    set neighb-enemies report-adjacent-divisions with [team != teamNumber] ;(divisions with [team != teamNumber and distance myself <= 1.1])
   ]
 end
 
@@ -198,17 +199,18 @@ to agg-attack [attacker proportion]
   
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
     [set german-losses (german-losses + attackDamage)]
-  
-  let defenders [neighb-enemies] of attacker ;agent-set of defending units
+    
+  let defenders [neighb-enemies] of attacker ;agent-set of defending divisions
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   if deftroops <= 1 [set defTroops 1]
-  let victoryRatio ([troops] of attacker / defTroops) ;ensure no unit by 0
-  if victoryRatio > 3 [ set troops (round troops - (0.1 * defTroops)) ]
+  let victoryRatio ([troops] of attacker / defTroops) ;ensure no division by 0
+  if (victoryRatio > 3) [ set troops (round troops - (0.1 * defTroops)) ] ;they will surrender
+  
   ask defenders [
     let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
     let losses (troopFrac * attackDamage)
-    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this unit
-    if-else (victoryRatio > 3)[ ask self [die] ]
+    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this division
+    if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
         ask patch [xcor] of self [ycor] of self [ sprout-dead-units 1 [
@@ -235,11 +237,16 @@ end
 
 to approach [unit]
   ; TODO: Implement Breadth-First-Search to find shortest path to enemy
-  ask unit [
-    if target != nobody [
+  ask division [
+    let defenders [neighb-enemies] of self
+
+    if (target != nobody) [
       ;if-else distance target <= 1 [ attack myself target 1 ]
-      if-else distance target <= 1 [ agg-attack myself 1 ]
+      if-else (count defenders > 0) [ 
+        set isEngaged true 
+        agg-attack myself 1 ]
       [
+        set isEngaged false
         face target
         let cell-here one-of cells-here
         forward 1
@@ -410,8 +417,8 @@ to add-unit [ xco yco introops effectiveness allegiance ingroup]
     set target [-1 -1]
     set group ingroup
     set neighb-enemies []
-    set travelTime 0
-    set size (troops / max-troops) + 0.2 ]]
+    set distanceNorth 0
+    set isEngaged false]]
 end
 
 ;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
@@ -428,6 +435,12 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup mile
     set neighb-enemies []
     set travelTime miles
     hide-turtle]]
+end
+
+to-report report-adjacent-divisions
+      ifelse pxcor mod 2 = 0
+      [ report divisions-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
+      [ report divisions-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
