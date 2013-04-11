@@ -249,8 +249,8 @@ to approach [unit]
         set isEngaged true 
         agg-attack myself 1 ]
       [
-        ; If there are neighboring allied units in combat, reinforce them
-        if count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 1
+        ; If there are neighboring allied units in combat, reinforce them, otherwise move
+        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 1
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -265,6 +265,7 @@ to approach [unit]
             ]
           ]
         ]
+        [
         set isEngaged false
         face target
         let cell-here one-of cells-here
@@ -272,6 +273,7 @@ to approach [unit]
         let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count units-here = 0 and count dead-units-here = 0) and terrain != 1]) [distance myself]
         if pclosest != nobody [
           move-to pclosest
+        ]
         ]
       ]
     ]
