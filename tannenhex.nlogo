@@ -1,3 +1,5 @@
+extensions[table]
+
 breed [ cells cell ] ;Hexagonal cells
 breed [ units unit ] ;represents an infantry unit
 breed [ armies army ] ;represents an army, made up of units
@@ -24,6 +26,7 @@ units-own [
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
   target              ;; [x y]
   neighb-enemies      ;; agent list of enemy units in neighboring hexes
+  travelling
   travelTime       ;; When a Russian 1st unit is north of the map, this is the number of miles they have left to travel
   nextCell            ;; used for BFS
   isEngaged           ;; is currently attacking (is adjacent to an enemy)
@@ -121,7 +124,7 @@ end
 
 to step
   move-armies
-  ask units [ set size (troops / max-troops) + 0.2 ]
+  ask units [ set size (.8 * troops / max-troops) + 0.4 ]
   tick
 end
 
@@ -161,13 +164,13 @@ end
 to move-armies
   set-targets
   set-neighb-enemies
-  ;approach-armies
-  ask (units with [travelTime = 0]) [ approach self ]
-  ask (units with [travelTime > 0]) [ travel self ]
+  approach-armies
+  ;ask (units with [travelling = false]) [ approach self ]
+  ask (units with [travelling = true]) [ travel self ]
 end
 
 to approach-armies
-  ask(units with [travelTime = 0]) [ 
+  ask(units with [travelling = false]) [ 
     let myteam team
     if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
     [
@@ -266,15 +269,9 @@ to approach [unit]
           ]
         ]
         [
+        move-to nextCell
+        ]
         set isEngaged false
-        face target
-        let cell-here one-of cells-here
-        forward 1
-        let pclosest min-one-of (([hex-neighbors] of cell-here) with [(count units-here = 0 and count dead-units-here = 0) and terrain != 1]) [distance myself]
-        if pclosest != nobody [
-          move-to pclosest
-        ]
-        ]
       ]
     ]
   ]
@@ -284,8 +281,9 @@ end
 to travel [unit]
   ask unit[ 
     set travelTime travelTime - tick-length
-    if travelTime < 0[
+    if travelTime <= 0[
       set travelTime 0
+      set travelling false
       show-turtle
     ]
   ]
@@ -297,58 +295,53 @@ end
 ; goal is reachable by starting at start and moving between adjacent hexes that are not water
 ; Returns the next step to take
 to bfs [start goal div]
+  let dict table:make
+  let queue []
   ;Start position is the head
   
-  let currentNode nobody
-  hatch-pathnodes 1 [
-    set hex start
-    set previousNode nobody
-    set visited false
-    hide-turtle
-  ]
-  set currentNode one-of pathNodes
+  let found false
+  set queue lput start queue
+  let currHex 0
   
-  while [count pathnodes with [hex = goal] = 0]
+  table:put dict [who] of start nobody
+  
+  while [found = false]
   [
+    ; "Dequeue" one hex
+    if length queue = 0
+    [
+      ask div [set nextCell one-of cells-here]
+      stop
+    ]
+    set currHex item 0 queue
+    set queue remove-item 0 queue
     
     ; "Enqueue" all the neighbors that have not already been added and that are not water
-    foreach (sort ([hex-neighbors] of [hex] of currentNode) with [terrain != 1 and (count units-here = 0 or self = goal)])
+    foreach (sort ([hex-neighbors] of currHex) with [terrain != 1 and (count units-here = 0 or self = goal)])
     [
-      if count pathnodes-here with [hex = ?] = 0
+      if (not table:has-key? dict [who] of ?)
       [
-        hatch-pathnodes 1 [
-          set hex ?
-          set previousNode currentNode
-          set visited false
-          hide-turtle
+        set queue lput ? queue
+        table:put dict [who] of ? currHex
+        
+        if ? = goal
+        [
+          set found true
         ]
       ]
       
-    ]
-    
-    ; "Dequeue" one hex
-    let tempHex [hex] of currentNode
-    ask currentNode [set visited true]
-    
-    if-else not (count (pathNodes with [visited = false]) = 0)
-    [
-      set currentNode item 0 (sort pathNodes with [visited = false])
-    ]
-    [
-      stop
     ]
   ]
   
   
   ; Now that the goal has been found, find your way back to the beginning
-  
-  set currentNode one-of pathNodes with [hex = goal]
-  
-  while [[hex] of [previousNode] of currentNode != start] [ set currentNode [previousNode] of currentNode ]
-  let returnval [hex] of currentNode
-  ask pathNodes [die]
-  
-  ask div[set nextCell returnval]
+  set currHex goal
+  let prevHex goal
+  while [ prevHex != start][
+  set currHex prevHex
+  set prevHex table:get dict [who] of currHex
+  ]
+  ask div[set nextCell currHex]
   
 end
 
@@ -382,25 +375,25 @@ to add-units
   
   ;  Russian 1st
   ;  IV Corps
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 0
   add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 0
   
   ;  III Corps
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 3
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 24
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 24
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 24
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 24
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 24
   
   ;  XX Corps
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 5
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 36
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 36
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 36
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 36
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 36
   
   
   ;Russian 2nd
@@ -444,8 +437,9 @@ to add-unit [ xco yco introops effectiveness allegiance ingroup]
     set group ingroup
     set neighb-enemies []
     set travelTime 0
+    set travelling false
     set isEngaged false
-    set size (troops / max-troops) + 0.2]]
+    set size (.8 * troops / max-troops) + 0.4]]
 end
 
 ;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
@@ -461,6 +455,7 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup mile
     set group ingroup
     set neighb-enemies []
     set travelTime miles
+    set travelling true
     hide-turtle]]
 end
 
@@ -681,8 +676,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -14070903 true "" "plot sum [troops] of units with [team = 0]"
-"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of units with [team = 1]"
+"default" 1.0 0 -14070903 true "" "plot sum [troops] of units with [team = 0 and travelTime = 0]"
+"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of units with [team = 1 and travelTime = 0]"
 
 @#$#@#$#@
 ## WHAT IS IT?
