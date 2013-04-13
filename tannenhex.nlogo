@@ -27,7 +27,7 @@ units-own [
   target              ;; [x y]
   neighb-enemies      ;; agent list of enemy units in neighboring hexes
   travelling
-  travelTime       ;; When a Russian 1st unit is north of the map, this is the number of miles they have left to travel
+  travelTime          ;; When a Russian 1st unit is north of the map, this is the number of miles they have left to travel
   nextCell            ;; used for BFS
   isEngaged           ;; is currently attacking (is adjacent to an enemy)
 ]
@@ -52,7 +52,7 @@ to setup
   setup-grid
   setup-waypoints
   add-terrain
-  ;tick-length in hours
+  ;24 in hours
   set tick-length 3
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
@@ -375,25 +375,25 @@ to add-units
   
   ;  Russian 1st
   ;  IV Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 0
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 0
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
   
   ;  III Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 24
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 24
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 24
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 24
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 24
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
   
   ;  XX Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 36
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 36
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 36
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 36
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 36
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
   
   
   ;Russian 2nd
@@ -607,10 +607,10 @@ SLIDER
 270
 headstart
 headstart
-26
-29
-27.8
-.2
+0
+4
+4
+.125
 1
 NIL
 HORIZONTAL
@@ -666,18 +666,18 @@ PLOT
 219
 502
 Troops Remaining
-NIL
+August
 NIL
 0.0
-10.0
+4.0
 0.0
 10.0
 true
 false
 "" ""
 PENS
-"default" 1.0 0 -14070903 true "" "plot sum [troops] of units with [team = 0 and travelTime = 0]"
-"pen-1" 1.0 0 -2674135 true "" "plot sum [troops] of units with [team = 1 and travelTime = 0]"
+"pen-0" 0.1 0 -14070903 true "set-plot-pen-interval tick-length / 24" "plot sum [troops] of units with [team = 0 and travelTime = 0]"
+"pen-1" 0.1 0 -2674135 true "set-plot-pen-interval tick-length / 24" "plot sum [troops] of units with [team = 1 and travelTime = 0]"
 
 @#$#@#$#@
 ## WHAT IS IT?
