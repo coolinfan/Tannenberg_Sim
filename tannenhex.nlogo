@@ -6,6 +6,7 @@ breed [ armies army ] ;represents an army, made up of units
 breed [ artilleries artillery ] ;represents an artillery brigade
 breed [ dead-units dead-unit ] ;represents a captured unit
 breed [ pathnodes pathnode ]
+breed [ cities city ]
 
 undirected-link-breed [rail-links rail-link]
 globals [german-losses russian-losses waypoints tick-length tick-distance max-troops]  ;<(^_^)>  ]
@@ -49,9 +50,22 @@ pathnodes-own [
 ;; Set up the simulation
 to setup
   clear-all
+  
+  ;Set up the hex grid
   setup-grid
+  
+  ;Set up unit waypoints
   setup-waypoints
+  
+  ;Imports the game map
+  ;  import-drawing "Game Map Scoped.png"
+  
+  ;Draw Terrain from tannenhexmap.txt
   add-terrain
+  
+  ;Add cities to the terrain
+  add-cities
+  
   ;24 in hours
   set tick-length 3
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
@@ -75,6 +89,7 @@ to setup-grid
   set-default-shape cells "hex"
   set-default-shape units "unit"
   set-default-shape dead-units "x"
+  set-default-shape cities "flag"
   
   ask patches
     [ sprout-cells 1
@@ -112,6 +127,64 @@ to add-terrain
                 if-else terrain = 4 [ color-terr  def-color ] [
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
+
+
+; Add cities to the map
+to add-cities
+  create-cities 1 
+  [setxy 6 17
+    set size .5
+    set label "Osterode"
+  ]
+  create-cities 1 
+  [setxy 0 14
+    set size .5
+    set label "Deutsch Eylau"
+  ]
+  create-cities 1 
+  [setxy 2 13
+    set size .5
+    set label "Lobau"
+  ]
+  create-cities 1 
+  [setxy 4 8
+    set size .5
+    set label "Lautenberg"
+  ]
+  create-cities 1 
+  [setxy 16 19
+    set size .5
+    set label "Allenstein"
+  ]
+  create-cities 1 
+  [setxy 9 7
+    set size .5
+    set label "Soldau"
+  ]
+  create-cities 1 
+  [setxy 12 4
+    set size .5
+    set label "Mlawa"
+  ]
+  create-cities 1 
+  [setxy 25 14
+    set size .5
+    set label "Ortelsburg"
+  ]
+  create-cities 1 
+  [setxy 8 11
+    set size .5
+    set label "Tannenberg"
+  ] 
+  
+  ask cities [
+    set size .5
+    set color white
+    set label-color black
+  ]
+  
+end
+
 
 ;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
@@ -166,19 +239,31 @@ to move-armies
   set-neighb-enemies
   approach-armies
   ;ask (units with [travelling = false]) [ approach self ]
-  ask (units with [travelling = true]) [ travel self ]
+  
+  foreach sort (units with [travelling = true]) 
+  [
+    ask ? [
+      travel self
+    ]
+  ]
 end
 
 to approach-armies
-  ask(units with [travelling = false]) [ 
-    let myteam team
-    if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
+  foreach sort(units with [travelling = false])
+  [
+    if is-turtle? ?
     [
-      if is-turtle? target [
-        bfs (one-of cells-here) (one-of cells-on target) (self)
+      ask ? [ 
+        let myteam team
+        if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
+        [
+          if is-turtle? target [
+            bfs (one-of cells-here) (one-of cells-on target) (self)
+          ]
+        ]
+        approach self
       ]
     ]
-    approach self
   ]
 end
 
@@ -192,8 +277,10 @@ end
 to set-targets
   ask units [
     let teamNumber [team] of self
-    let neighbor one-of cells-here 
-    set target min-one-of (units with [team != teamNumber and travelTime = 0]) [distance myself]
+    if any? units with [team != teamNumber and travelTime = 0]
+    [
+      set target item 0 sort((units with [team != teamNumber and travelTime = 0]) with-min [distance myself])
+    ]
   ]
 end
 
@@ -269,7 +356,7 @@ to approach [unit]
           ]
         ]
         [
-        move-to nextCell
+          move-to nextCell
         ]
         set isEngaged false
       ]
@@ -338,8 +425,8 @@ to bfs [start goal div]
   set currHex goal
   let prevHex goal
   while [ prevHex != start][
-  set currHex prevHex
-  set prevHex table:get dict [who] of currHex
+    set currHex prevHex
+    set prevHex table:get dict [who] of currHex
   ]
   ask div[set nextCell currHex]
   
@@ -382,18 +469,18 @@ to add-units
   add-approaching-unit 37 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
   
   ;  III Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 24 + (headstart * 24)
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
   
   ;  XX Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 36 + (headstart * 24)
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
   
   
   ;Russian 2nd
@@ -510,11 +597,11 @@ end
 GRAPHICS-WINDOW
 242
 35
-1113
-612
+867
+456
 -1
 -1
-21.0
+15.0
 1
 10
 1
@@ -594,7 +681,7 @@ mapSize
 mapSize
 1
 50
-21
+15
 1
 1
 NIL
@@ -609,7 +696,7 @@ headstart
 headstart
 0
 4
-4
+0
 .125
 1
 NIL
@@ -624,7 +711,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .1
-0.035
+0.02
 .005
 1
 NIL
@@ -666,8 +753,8 @@ PLOT
 219
 502
 Troops Remaining
-August
-NIL
+Days
+Troops
 0.0
 4.0
 0.0
