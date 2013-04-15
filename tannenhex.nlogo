@@ -91,13 +91,15 @@ to setup-grid
   set-default-shape dead-units "x"
   set-default-shape cities "flag"
   
-  ask patches
+  foreach sort (patches)
+  [
+  ask ?
     [ sprout-cells 1
       [ set size 1.4
         set color green - 3  ;; dark gray
                              ;; shift even columns down
         if pxcor mod 2 = 0
-          [ set ycor ycor - 0.5 ] ] ]
+          [ set ycor ycor - 0.5 ] ] ] ]
   ;; set up the hex-neighbors agentsets
   ask cells
     [ ifelse pxcor mod 2 = 0
