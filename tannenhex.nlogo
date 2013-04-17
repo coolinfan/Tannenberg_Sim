@@ -69,7 +69,6 @@ dead-units-own [
   troops
 ]
 
-rail-links-own []
 artilleries-own []
 
 pathnodes-own [
@@ -594,13 +593,6 @@ to check-victory-conditions-for-army-surrender
       let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
       ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
     ]]]
-end
-
-;this is phased out because we are not incorporating rail
-to add-rail-link [ xa ya xb yb ]
-  ask patch xa ya [ 
-    ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
-  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
