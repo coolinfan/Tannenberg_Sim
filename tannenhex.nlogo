@@ -1,5 +1,21 @@
 extensions[table]
 
+globals [
+  ; counters
+  german-losses
+  russian-losses
+  
+  ; navigation
+  waypoints
+  
+  ; global constants
+  tick-length
+  tick-distance
+  max-troops
+  ger8th
+  rus2nd
+]
+
 to step
   move-armies
   ask units [ set size (.8 * troops / max-troops) + 0.4 ]
@@ -22,7 +38,7 @@ breed [ pathnodes pathnode ]
 breed [ cities city ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses waypoints tick-length tick-distance max-troops ger8th rus2nd]
+
                                                                                        ;Define instance variables of the different turtles
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
@@ -67,22 +83,31 @@ pathnodes-own [
 ;; main setup function
 to setup
   clear-all
+  setup-global-constants
+  setup-global-counters
   setup-grid ;Set up the hex grid
   setup-waypoints ;Set up unit waypoints
   import-drawing "Game Map Scoped.png" ;Import game map
   ask cells [ set hidden? true]
   add-terrain ;Draw Terrain from tannenhexmap.txt
   add-cities ;Add cities to the terrain
+  add-units
+
+  reset-ticks
+end
+
+to setup-global-constants
   set tick-length 3 ;tick length in hours
-  
+  ;set tick-distance ?
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
   set ger8th .6
   set rus2nd .2
-  add-units
+end
+
+to setup-global-counters
   set german-losses 0
   set russian-losses 0
-  reset-ticks
 end
 
 to setup-waypoints ;;waypoints not currently implemented
@@ -423,6 +448,7 @@ to add-units
   
   let headStartOffset (headstart * 24)
   
+  if (firstRussianArmy) [
   ;  Russian 1st
   ;  IV Corps
   add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + headStartOffset
@@ -449,7 +475,7 @@ to add-units
   add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + headStartOffset
   add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + headStartOffset
   add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + headStartOffset
-  
+  ]
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
@@ -601,10 +627,10 @@ ticks
 30.0
 
 BUTTON
-73
-44
-154
-77
+14
+12
+95
+45
 NIL
 setup\n
 NIL
@@ -618,10 +644,10 @@ NIL
 1
 
 BUTTON
-73
-114
-154
-147
+14
+82
+95
+115
 NIL
 go
 T
@@ -635,10 +661,10 @@ NIL
 1
 
 BUTTON
-73
-79
-154
-112
+14
+47
+95
+80
 step
 go
 NIL
@@ -652,10 +678,10 @@ NIL
 1
 
 SLIDER
-25
-173
-210
-206
+101
+12
+222
+45
 mapSize
 mapSize
 1
@@ -667,15 +693,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-25
-237
-210
-270
+27
+187
+212
+220
 headstart
 headstart
 0
 4
-0
+1.75
 .125
 1
 NIL
@@ -683,54 +709,44 @@ HORIZONTAL
 
 SLIDER
 24
-306
-209
-339
+241
+214
+274
 ruseffectiveness
 ruseffectiveness
 0
 .5
-0.4
+0.21
 .005
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-26
-157
-139
-175
-Map Size
-11
-0.0
-1
-
-TEXTBOX
-25
-218
-230
-246
+63
+172
+268
+200
 Russian Arrival Time
 11
 0.0
 1
 
 TEXTBOX
-26
-287
-203
-315
+38
+225
+215
+253
 Russian 1st Army effectiveness
 11
 0.0
 1
 
 PLOT
-19
-371
-219
-502
+13
+336
+236
+527
 Troops Remaining
 Days
 Troops
@@ -744,6 +760,27 @@ false
 PENS
 "pen-0" 0.1 0 -14070903 true "set-plot-pen-interval tick-length / 24" "plot sum [troops] of units with [team = 0 and travelTime = 0]"
 "pen-1" 0.1 0 -2674135 true "set-plot-pen-interval tick-length / 24" "plot sum [troops] of units with [team = 1 and travelTime = 0]"
+
+SWITCH
+101
+82
+222
+115
+firstRussianArmy
+firstRussianArmy
+1
+1
+-1000
+
+TEXTBOX
+135
+68
+285
+86
+1st army?\n
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
