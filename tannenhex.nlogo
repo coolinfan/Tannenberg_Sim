@@ -5,6 +5,7 @@ globals [
   german-losses     ;total german losses so far
   russian-losses    ;total russian losses so far
   battle-over       ;is battle over? (for termination of sim)
+  hours-passed 
   
                     ; navigation
   waypoints
@@ -23,6 +24,7 @@ globals [
 to step
   if doSound [ beethoven ]
   move-armies
+  set hours-passed hours-passed + tick-length
   ask units [ set size (.8 * troops / max-troops) + 0.4 ] ;set visual size based on num troops
   tick
 end
@@ -33,6 +35,8 @@ to go
     if (not any? units with [team = 0]) or (not any? units with [team = 1]) [ set battle-over true ]
   ]
 end
+
+to-report days-passed report (26 + hours-passed / 24) end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -105,6 +109,7 @@ to setup-global-constants
 end
 
 to setup-global-counters
+  set hours-passed 0
   set german-losses 0
   set russian-losses 0
   set battle-over false
@@ -214,10 +219,14 @@ to agg-attack [attacker proportion]
     set troops (round troops - losses) ;scale attack damage by the percentage of troops in this unit
     let newTroops troops
     let actualLosses 0
-    if-else troops < 0 [set actualLosses oldTroops][set actualLosses oldTroops - troops]
     
-    if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
-    [set german-losses german-losses + actualLosses]
+    if-else troops < 0 
+      [set actualLosses oldTroops]
+      [set actualLosses oldTroops - troops]
+    
+    if-else [team] of attacker = 0 
+      [set russian-losses russian-losses + actualLosses]
+      [set german-losses german-losses + actualLosses]
     
     if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
     [
@@ -614,8 +623,6 @@ to beethoven
   note i v 54 quarter
   set altern true
   ]
-end
-
 ;;; helpers
 
 to note [instrument velocity pitch duration]
@@ -822,9 +829,20 @@ SWITCH
 320
 doSound
 doSound
-0
+1
 1
 -1000
+
+MONITOR
+14
+122
+64
+167
+Day
+days-passed
+1
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
