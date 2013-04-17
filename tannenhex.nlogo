@@ -2,27 +2,33 @@ extensions[table]
 
 globals [
   ; counters
-  german-losses
-  russian-losses
+  german-losses     ;total german losses so far
+  russian-losses    ;total russian losses so far
+  battle-over       ;is battle over? (for termination of sim)
   
   ; navigation
   waypoints
   
   ; global constants
-  tick-length
+  tick-length       ;number of hours in a tick
   tick-distance
-  max-troops
-  ger8th
-  rus2nd
+  max-troops        ;max number of troops in a hex
+  ger8th            ;effectiveness of german 8th army
+  rus2nd            ;effectiveness of russian 2nd army
 ]
 
 to step
   move-armies
-  ask units [ set size (.8 * troops / max-troops) + 0.4 ]
+  ask units [ set size (.8 * troops / max-troops) + 0.4 ] ;set visual size based on num troops
   tick
 end
 
-to go step end
+to go 
+ if not battle-over [ ;go until one side is no longer in play
+    step
+    if (not any? units with [team = 0]) or (not any? units with [team = 1]) [ set battle-over true ]
+ ]
+end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -35,11 +41,8 @@ breed [ armies army ] ;represents an army, made up of units
 breed [ artilleries artillery ] ;represents an artillery brigade
 breed [ dead-units dead-unit ] ;represents a captured unit
 breed [ pathnodes pathnode ]
-breed [ cities city ]
+breed [ cities city ] ;visual representation of city for context
 
-undirected-link-breed [rail-links rail-link]
-
-                                                                                       ;Define instance variables of the different turtles
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
   n              ;; used to store a count of white neighbors
@@ -101,13 +104,14 @@ to setup-global-constants
   ;set tick-distance ?
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
-  set ger8th .6
-  set rus2nd .2
+  set ger8th .6 ;tune this ;.6
+  set rus2nd .4 ;tune this ;.2
 end
 
 to setup-global-counters
   set german-losses 0
   set russian-losses 0
+  set battle-over false
 end
 
 to setup-waypoints ;;waypoints not currently implemented
@@ -1105,6 +1109,16 @@ setup1
 repeat 20 [ go ]
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <exitCondition>battle-over</exitCondition>
+    <metric>sum [troops] of units with [team = 0 and travelTime = 0]</metric>
+    <metric>sum [troops] of units with [team = 1 and travelTime = 0]</metric>
+    <steppedValueSet variable="rus2nd" first="0.1" step="0.05" last="0.6"/>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
