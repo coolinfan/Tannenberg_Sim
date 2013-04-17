@@ -1,5 +1,18 @@
 extensions[table]
 
+to step
+  move-armies
+  ask units [ set size (.8 * troops / max-troops) + 0.4 ]
+  tick
+end
+
+to go step end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Turtle Definitions     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 breed [ cells cell ] ;Hexagonal cells
 breed [ units unit ] ;represents an infantry unit
 breed [ armies army ] ;represents an army, made up of units
@@ -46,33 +59,24 @@ pathnodes-own [
   visited
 ]
 
-;; Set up the simulation
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Setup Functions     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; main setup function
 to setup
   clear-all
-  
-  ;Set up the hex grid
-  setup-grid
-  
-  ;Set up unit waypoints
-  setup-waypoints
-  
-  ;Imports the game map
-    import-drawing "Game Map Scoped.png"
-    ask cells [ set hidden? true]
-  
-  ;Draw Terrain from tannenhexmap.txt
-  add-terrain
-  
-  ;Add cities to the terrain
-  add-cities
-  
-  ;tick length in hours
-  set tick-length 3
+  setup-grid ;Set up the hex grid
+  setup-waypoints ;Set up unit waypoints
+  import-drawing "Game Map Scoped.png" ;Import game map
+  ask cells [ set hidden? true]
+  add-terrain ;Draw Terrain from tannenhexmap.txt
+  add-cities ;Add cities to the terrain
+  set tick-length 3 ;tick length in hours
   
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
-  
-  ;add-rail
   set ger8th .6
   set rus2nd .2
   add-units
@@ -81,13 +85,10 @@ to setup
   reset-ticks
 end
 
-to setup-waypoints
-  ;; 
-  ;;
-  
+to setup-waypoints ;;waypoints not currently implemented
 end
 
-;;Set up the grid
+;; define hex grid
 to setup-grid
   set-patch-size mapSize
   set-default-shape cells "hex"
@@ -134,10 +135,6 @@ to add-terrain
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
 
-to add-city [ xco yco lbl ]
-  create-cities 1 [setxy xco yco set size .5 set label lbl ]
-end
-
 ;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
 
@@ -147,17 +144,70 @@ to display-unit [allegiance]
   if pxcor mod 2 = 0 [ set ycor ycor - 0.5 ]
 end
 
-to step
-  move-armies
-  ask units [ set size (.8 * troops / max-troops) + 0.4 ]
-  tick
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Target Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to set-neighb-enemies
+  ask units [
+    let teamNumber [team] of self
+    set neighb-enemies report-adjacent-units with [team != teamNumber] ;(units with [team != teamNumber and distance myself <= 1.1])
+  ]
 end
 
-to go
-  step
+to set-targets
+  ask units [
+    let teamNumber [team] of self
+    if any? units with [team != teamNumber and travelTime = 0]
+    [
+      set target item 0 sort((units with [team != teamNumber and travelTime = 0]) with-min [distance myself])
+    ]
+  ]
 end
 
-; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Combat Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; An attacker attacks all adjacent defenders with a proportion of his firepower.
+to agg-attack [attacker proportion]
+  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
+  
+  let defenders [neighb-enemies] of attacker ;agent-set of defending units
+  let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
+  if deftroops <= 1 [set defTroops 1]
+  let victoryRatio ([troops] of attacker / defTroops) ;ensure no unit by 0
+  if (victoryRatio > 3) [ set troops (round troops - (0.1 * defTroops)) ] ;they will surrender
+  
+  ask defenders [
+    let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
+    let losses (troopFrac * attackDamage)
+    let oldTroops troops
+    set troops (round troops - losses) ;scale attack damage by the percentage of troops in this unit
+    let newTroops troops
+    let actualLosses 0
+    if-else troops < 0 [set actualLosses oldTroops][set actualLosses oldTroops - troops]
+    
+  if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
+    [set german-losses german-losses + actualLosses]
+    
+    if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
+    [
+      if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
+        ask patch [xcor] of self [ycor] of self [ add-dead-unit newTroops ]
+        ask self [die]
+      ]
+    ]
+  ]  
+end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Movement Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 to move-armies
   set-targets
   set-neighb-enemies
@@ -185,72 +235,6 @@ to approach-armies
     ]
   ]
 end
-
-to set-neighb-enemies
-  ask units [
-    let teamNumber [team] of self
-    set neighb-enemies report-adjacent-units with [team != teamNumber] ;(units with [team != teamNumber and distance myself <= 1.1])
-  ]
-end
-
-to set-targets
-  ask units [
-    let teamNumber [team] of self
-    if any? units with [team != teamNumber and travelTime = 0]
-    [
-      set target item 0 sort((units with [team != teamNumber and travelTime = 0]) with-min [distance myself])
-    ]
-  ]
-end
-
-;Combat procedures;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; An attacker attacks all adjacent defenders with a proportion of his firepower.
-to agg-attack [attacker proportion]
-  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
-  
-  let defenders [neighb-enemies] of attacker ;agent-set of defending units
-  let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
-  if deftroops <= 1 [set defTroops 1]
-  let victoryRatio ([troops] of attacker / defTroops) ;ensure no unit by 0
-  if (victoryRatio > 3) [ set troops (round troops - (0.1 * defTroops)) ] ;they will surrender
-  
-  ask defenders [
-    let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
-    let losses (troopFrac * attackDamage)
-    let oldTroops troops
-    set troops (round troops - losses) ;scale attack damage by the percentage of troops in this unit
-    let newTroops troops
-    let actualLosses 0
-    if-else troops < 0 [set actualLosses oldTroops][set actualLosses oldTroops - troops]
-    
-  if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
-    [set german-losses german-losses + actualLosses]
-    
-    if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
-    [
-      if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
-        ask patch [xcor] of self [ycor] of self [ sprout-dead-units 1 [
-          set size 0.8
-          set troops newTroops
-          set team 1
-          display-unit team
-          set russian-losses (russian-losses + [troops] of self)
-        ]]
-        ask self [die]
-      ]
-    ]
-  ]  
-end
-
-;; Approaches a units
-;to approach
-;  
-;  if-else distance target <= 1 [ agg-attack self 1 ]
-;    [
-;      move-to nextCell
-;    ]
-;end
 
 to approach [unit]
   ask unit [
@@ -297,7 +281,6 @@ to travel [unit]
   ]
 end
 
-
 ; Run a breadth-first search for distance from the start to the goal
 ; Inputs are hexes that are not water
 ; goal is reachable by starting at start and moving between adjacent hexes that are not water
@@ -305,10 +288,7 @@ end
 to bfs [start div]
   let dict table:make
   let queue []
-  
-  let goal start
-  ;Start position is the head
-  
+  let goal start ;Start position is the head
   let found false
   set queue lput start queue
   let currHex 0
@@ -339,11 +319,9 @@ to bfs [start div]
           set found true
           set goal ?
         ]
-      ]
-      
+      ]  
     ]
   ]
-  
   
   ; Now that the goal has been found, find your way back to the beginning
   set currHex goal
@@ -353,26 +331,61 @@ to bfs [start div]
     set prevHex table:get dict [who] of currHex
   ]
   ask div[set nextCell currHex]
-  
 end
 
-; Add cities to the map
-to add-cities
-  add-city 6 17 "Osterode"
-  add-city 0 14 "Deutsch Eylau"
-  add-city 2 13 "Lobau"
-  add-city 16 19 "Allenstein"
-  add-city 4 8 "Lautenberg"
-  add-city 9 7 "Soldau"
-  add-city 12 4 "Mlawa"
-  add-city 25 14 "Ortelsburg"
-  add-city 8 11 "Tannenberg"
-  
-  ask cities [
-    set size .5
-    set color black
-    set label-color black
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Add-Turtle Functions     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
+;; add-unit x-coordinate y-coordinate troops effectiveness team(0 is german, 1 is russian) group
+to add-unit [ xco yco introops effectiveness allegiance ingroup]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
+  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set aimedWeapons effectiveness
+    set target [-1 -1]
+    set group ingroup
+    set neighb-enemies []
+    set travelTime 0
+    set travelling false
+    set isEngaged false
+    set size (.8 * troops / max-troops) + 0.4]]
+end
+
+to add-dead-unit [ newTroops ]
+  sprout-dead-units 1 [
+    set size 0.8
+    set troops newTroops
+    set team 1
+    display-unit team
+    set russian-losses (russian-losses + [troops] of self)
   ]
+end
+
+;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
+to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup miles]
+  let loc-set 0
+  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
+  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
+    set team allegiance
+    set troops introops
+    set maxTroops troops
+    set aimedWeapons effectiveness
+    set target [-1 -1]
+    set group ingroup
+    set neighb-enemies []
+    set travelTime miles
+    set travelling true
+    hide-turtle]]
+end
+
+to add-city [ xco yco lbl ]
+  create-cities 1 [setxy xco yco set size .5 set label lbl ]
 end
 
 ; Add units
@@ -407,7 +420,6 @@ to add-units
   add-unit 10 13 8000 ger8th 0 0
   add-unit 8 13 8000 ger8th 0 0
   add-unit 8 11 8000 ger8th 0 0
-  
   
   let headStartOffset (headstart * 24)
   
@@ -460,7 +472,6 @@ to add-units
   add-unit 19 16 10000 rus2nd 1 2
   add-unit 17 16 10000 rus2nd 1 2
   
-  
   ; XV Corps - Just south of Orlau
   add-unit 14 10 10000 rus2nd 1 2
   add-unit 15 11 10000 rus2nd 1 2
@@ -468,43 +479,25 @@ to add-units
   add-unit 16 12 10000 rus2nd 1 2
   add-unit 16 13 10000 rus2nd 1 2
   add-unit 16 14 10000 rus2nd 1 2
+end
+
+; Add cities to the map
+to add-cities
+  add-city 6 17 "Osterode"
+  add-city 0 14 "Deutsch Eylau"
+  add-city 2 13 "Lobau"
+  add-city 16 19 "Allenstein"
+  add-city 4 8 "Lautenberg"
+  add-city 9 7 "Soldau"
+  add-city 12 4 "Mlawa"
+  add-city 25 14 "Ortelsburg"
+  add-city 8 11 "Tannenberg"
   
-end
-
-;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
-;; add-unit x-coordinate y-coordinate troops effectiveness team(0 is german, 1 is russian) group
-to add-unit [ xco yco introops effectiveness allegiance ingroup]
-  let loc-set 0
-  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
-    set team allegiance
-    set troops introops
-    set maxTroops troops
-    set aimedWeapons effectiveness
-    set target [-1 -1]
-    set group ingroup
-    set neighb-enemies []
-    set travelTime 0
-    set travelling false
-    set isEngaged false
-    set size (.8 * troops / max-troops) + 0.4]]
-end
-
-;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
-to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup miles]
-  let loc-set 0
-  while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
-  ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
-    set team allegiance
-    set troops introops
-    set maxTroops troops
-    set aimedWeapons effectiveness
-    set target [-1 -1]
-    set group ingroup
-    set neighb-enemies []
-    set travelTime miles
-    set travelling true
-    hide-turtle]]
+  ask cities [
+    set size .5
+    set color black
+    set label-color black
+  ]
 end
 
 to-report report-adjacent-units
@@ -513,9 +506,10 @@ to-report report-adjacent-units
     [ report units-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
 end
 
-;;;;;;;;;;;;;;;;;;;;Code that can probably be phased out goes down here
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    Phased Out Code     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;this is phased out because we are doing aggregate attack
 ; An attacker attacks the defender with a proportion of his firepower.
@@ -527,12 +521,9 @@ to attack [attacker defender proportion]
   ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
   
-  
   ;ask attacker [set troops (troops - defendDamage)]
   ask defender [set troops (round troops - (attackDamage))]
-  
-  ;if [troops] of attacker < 0 [ ask attacker [die] ]
-  
+
   if-else [troops] of defender < 0 [ ask defender [die] ]
   [
     if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
@@ -541,8 +532,7 @@ to attack [attacker defender proportion]
         set team [team] of defender
         display-unit team
         set russian-losses (russian-losses + [troops] of defender)
-      ]
-      ]
+      ] ]
       ask defender [die]
     ]
   ]
