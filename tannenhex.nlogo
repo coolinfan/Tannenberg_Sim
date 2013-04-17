@@ -9,7 +9,7 @@ breed [ pathnodes pathnode ]
 breed [ cities city ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses waypoints tick-length tick-distance max-troops]  ;<(^_^)>  ]
+globals [german-losses russian-losses waypoints tick-length tick-distance max-troops ger8th rus2nd]  ;<(^_^)>  ]
 
                                                                                        ;Define instance variables of the different turtles
 cells-own [
@@ -66,11 +66,15 @@ to setup
   ;Add cities to the terrain
   add-cities
   
-  ;24 in hours
+  ;tick length in hours
   set tick-length 3
+  
   ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
+  
   ;add-rail
+  set ger8th .8
+  set rus2nd .25
   add-units
   set german-losses 0
   set russian-losses 0
@@ -181,7 +185,7 @@ to add-cities
   
   ask cities [
     set size .5
-    set color white
+    set color black
     set label-color black
   ]
   
@@ -260,7 +264,7 @@ to approach-armies
         if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
         [
           if is-turtle? target [
-            bfs (one-of cells-here) (one-of cells-on target) (self)
+            bfs (one-of cells-here) (self)
           ]
         ]
         approach self
@@ -290,7 +294,7 @@ end
 
 ; An attacker attacks all adjacent defenders with a proportion of his firepower.
 to agg-attack [attacker proportion]
-  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
+  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
   
   if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
     [set german-losses (german-losses + attackDamage)]
@@ -331,7 +335,6 @@ end
 ;end
 
 to approach [unit]
-  ; TODO: Implement Breadth-First-Search to find shortest path to enemy
   ask unit [
     let defenders [neighb-enemies] of self
     
@@ -342,7 +345,7 @@ to approach [unit]
         agg-attack myself 1 ]
       [
         ; If there are neighboring allied units in combat, reinforce them, otherwise move
-        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 1
+        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 0
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -383,9 +386,11 @@ end
 ; Inputs are hexes that are not water
 ; goal is reachable by starting at start and moving between adjacent hexes that are not water
 ; Returns the next step to take
-to bfs [start goal div]
+to bfs [start div]
   let dict table:make
   let queue []
+  
+  let goal start
   ;Start position is the head
   
   let found false
@@ -406,16 +411,17 @@ to bfs [start goal div]
     set queue remove-item 0 queue
     
     ; "Enqueue" all the neighbors that have not already been added and that are not water
-    foreach (sort ([hex-neighbors] of currHex) with [terrain != 1 and (count units-here = 0 or self = goal)])
+    foreach (sort ([hex-neighbors] of currHex) with [terrain != 1 and (count units-here with [team = [team] of div] = 0)])
     [
       if (not table:has-key? dict [who] of ?)
       [
         set queue lput ? queue
         table:put dict [who] of ? currHex
         
-        if ? = goal
+        if (count (units-on ?) with [team != [team] of div]) > 0
         [
           set found true
+          set goal ?
         ]
       ]
       
@@ -439,76 +445,93 @@ end
 to add-units
   ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
   
+  ; I Corps - starts near Seebeger8th
+  add-unit 4 8 8000 ger8th 0 0
+  add-unit 5 8 8000 ger8th 0 0
+  add-unit 5 7 8000 ger8th 0 0
+  add-unit 5 9 8000 ger8th 0 0
+  add-unit 6 10 8000 ger8th 0 0
+  
+  ; XVII Corps - starts south of Heilsburg
+  add-unit 23 23 8000 ger8th 0 0
+  add-unit 22 23 8000 ger8th 0 0
+  add-unit 22 24 8000 ger8th 0 0
+  add-unit 23 24 8000 ger8th 0 0
+  add-unit 21 24 8000 ger8th 0 0
+  
   ;German 8th
-  ; I Corps - starts near Seeben
-  add-unit 4 8 8800 .06 0 0
-  add-unit 5 8 8800 .06 0 0
-  add-unit 5 7 8800 .06 0 0
-  add-unit 5 9 8800 .06 0 0
-  add-unit 6 10 8800 .06 0 0
-  
-  ; XVII Corps - starts near Heilsburg
-  add-unit 22 24 8800 .06 0 0
-  add-unit 23 23 8800 .06 0 0
-  add-unit 22 23 8800 .06 0 0
-  add-unit 23 24 8800 .06 0 0
-  add-unit 21 24 8800 .06 0 0
-  
+  ; IR Corps - Starts near XVII Corps
+  add-unit 16 23 8000 ger8th 0 0
+  add-unit 15 23 8000 ger8th 0 0
+  add-unit 15 24 8000 ger8th 0 0
+  add-unit 16 24 8000 ger8th 0 0
+  add-unit 14 24 8000 ger8th 0 0
+    
   ; XX Corps - Tannenberg
-  add-unit 8 12 8800 .06 0 0
-  add-unit 9 12 8800 .06 0 0
-  add-unit 10 13 8800 .06 0 0
-  add-unit 8 13 8800 .06 0 0
-  add-unit 8 11 8800 .06 0 0
+  add-unit 8 12 8000 ger8th 0 0
+  add-unit 9 12 8000 ger8th 0 0
+  add-unit 10 13 8000 ger8th 0 0
+  add-unit 8 13 8000 ger8th 0 0
+  add-unit 8 11 8000 ger8th 0 0
   
   
-  ;  Russian 1st
-  ;  IV Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  
-  ;  III Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  
-  ;  XX Corps
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 34 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 35 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 36 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 37 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  
+;  ;  Russian 1st
+;  ;  IV Corps
+;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  add-approaching-unit 29 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+;  
+;  ;  III Corps
+;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  add-approaching-unit 29 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+;  
+;  ;  XX Corps
+;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+;  
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  add-unit 9 5 10000 .02 1 2
-  add-unit 10 6 10000 .02 1 2
-  add-unit 10 7 10000 .02 1 2
-  add-unit 11 8 10000 .02 1 2
-  add-unit 11 9 10000 .02 1 2
+  add-unit 9 5 10000 rus2nd 1 2
+  add-unit 10 6 10000 rus2nd 1 2
+  add-unit 10 7 10000 rus2nd 1 2
+  add-unit 11 8 10000 rus2nd 1 2
+  add-unit 10 8 10000 rus2nd 1 2
+  add-unit 11 9 10000 rus2nd 1 2
+  add-unit 10 9 10000 rus2nd 1 2
   
   ; VI Corps was harldy a factor, so not included
   
   ; XIII Corps - northeast of Orlau
-  add-unit 17 14 10000 .02 1 2
-  add-unit 17 15 10000 .02 1 2
-  add-unit 18 16 10000 .02 1 2
-  add-unit 18 17 10000 .02 1 2
-  add-unit 19 17 10000 .02 1 2
+  add-unit 17 14 10000 rus2nd 1 2
+  add-unit 17 15 10000 rus2nd 1 2
+  add-unit 18 16 10000 rus2nd 1 2
+  add-unit 18 17 10000 rus2nd 1 2
+  add-unit 19 17 10000 rus2nd 1 2
+  add-unit 19 16 10000 rus2nd 1 2
+  add-unit 17 16 10000 rus2nd 1 2
   
   
   ; XV Corps - Just south of Orlau
-  add-unit 14 10 10000 .02 1 2
-  add-unit 15 11 10000 .02 1 2
-  add-unit 15 12 10000 .02 1 2
-  add-unit 16 12 10000 .02 1 2
-  add-unit 16 13 10000 .02 1 2
+  add-unit 14 10 10000 rus2nd 1 2
+  add-unit 15 11 10000 rus2nd 1 2
+  add-unit 15 12 10000 rus2nd 1 2
+  add-unit 16 12 10000 rus2nd 1 2
+  add-unit 16 13 10000 rus2nd 1 2
+  add-unit 16 14 10000 rus2nd 1 2
   
 end
 
@@ -597,13 +620,13 @@ to add-rail-link [ xa ya xb yb ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-242
-35
-867
-456
+251
+10
+1204
+639
 -1
 -1
-15.0
+23.0
 1
 10
 1
@@ -683,7 +706,7 @@ mapSize
 mapSize
 1
 50
-15
+23
 1
 1
 NIL
@@ -698,7 +721,7 @@ headstart
 headstart
 0
 4
-0
+0.375
 .125
 1
 NIL
@@ -712,8 +735,8 @@ SLIDER
 ruseffectiveness
 ruseffectiveness
 0
-.1
-0.02
+.5
+0.2
 .005
 1
 NIL
