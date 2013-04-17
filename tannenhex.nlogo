@@ -1,4 +1,4 @@
-extensions[table]
+extensions[table sound]
 
 globals [
   ; counters
@@ -15,9 +15,12 @@ globals [
   max-troops        ;max number of troops in a hex
   ger8th            ;effectiveness of german 8th army
   rus2nd            ;effectiveness of russian 2nd army
+  
+  clock
 ]
 
 to step
+  if doSound [ beethoven ]
   move-armies
   ask units [ set size (.8 * troops / max-troops) + 0.4 ] ;set visual size based on num troops
   tick
@@ -594,6 +597,37 @@ to check-victory-conditions-for-army-surrender
       ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
     ]]]
 end
+
+;;;;;;SOUND FUNCTIONS;;;;;;;
+
+to beethoven
+  set clock 0
+  let i "Trumpet"
+  let v 50
+  ;; da da da DUMMMM
+  note i v 63 quarter
+  note i v 59 quarter
+  note i v 63 eighth
+  note i v 59 eighth
+  note i v 54 quarter
+
+end
+
+;;; helpers
+
+to note [instrument velocity pitch duration]
+  sound:play-note-later clock instrument pitch velocity duration
+  set clock clock + duration
+end
+
+to rest [duration]
+  set clock clock + duration
+end
+
+to-report whole   report 240 / 240 end
+to-report half    report 120 / 240 end
+to-report quarter report  60 / 240 end
+to-report eighth  report  30 / 240 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 251
@@ -777,6 +811,17 @@ TEXTBOX
 11
 0.0
 1
+
+SWITCH
+69
+287
+169
+320
+doSound
+doSound
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
