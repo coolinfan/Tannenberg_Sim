@@ -216,7 +216,7 @@ to agg-attack [attacker proportion]
     let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
     let losses (troopFrac * attackDamage)
     let oldTroops troops
-    set troops (round troops - losses) ;scale attack damage by the percentage of troops in this unit
+    set troops (round (troops - losses)) ;scale attack damage by the percentage of troops in this unit
     let newTroops troops
     let actualLosses 0
     
@@ -430,11 +430,11 @@ to add-units
   ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
   
   ; I Corps - starts near Seebeger8th
-  add-unit 6 7 8000 ger8th 0 0
-  add-unit 5 8 8000 ger8th 0 0
-  add-unit 5 7 8000 ger8th 0 0
-  add-unit 6 9 8000 ger8th 0 0
-  add-unit 6 10 8000 ger8th 0 0
+  add-unit 8 7 8000 ger8th 0 0
+  add-unit 8 8 8000 ger8th 0 0
+  add-unit 9 6 8000 ger8th 0 0
+  add-unit 8 9 8000 ger8th 0 0
+  add-unit 8 10 8000 ger8th 0 0
   
   ; XVII Corps - starts south of Heilsburg
   add-unit 25 19 8000 ger8th 0 0
@@ -491,7 +491,7 @@ to add-units
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  add-unit 13 9 10000 rus2nd 1 2
+  add-unit 14 11 10000 rus2nd 1 2
   add-unit 13 10 10000 rus2nd 1 2
   add-unit 13 11 10000 rus2nd 1 2
   add-unit 14 12 10000 rus2nd 1 2
@@ -525,7 +525,7 @@ to add-cities
   add-city 0 14 "Deutsch Eylau"
   add-city 2 13 "Lobau"
   add-city 16 19 "Allenstein"
-  add-city 4 8 "Lautenberg"
+  add-city 4 6 "Lautenberg"
   add-city 9 7 "Soldau"
   add-city 12 4 "Mlawa"
   add-city 25 14 "Ortelsburg"
