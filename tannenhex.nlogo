@@ -17,6 +17,7 @@ globals [
   rus2nd            ;effectiveness of russian 2nd army
   
   clock
+  altern
 ]
 
 to step
@@ -114,6 +115,7 @@ to setup-global-counters
   set german-losses 0
   set russian-losses 0
   set battle-over false
+  set altern false
 end
 
 to setup-waypoints ;;waypoints not currently implemented
@@ -601,6 +603,10 @@ end
 ;;;;;;SOUND FUNCTIONS;;;;;;;
 
 to beethoven
+  ifelse altern [
+  sound:play-sound "Horse.wav"
+  set altern false
+  ][
   set clock 0
   let i "Trumpet"
   let v 50
@@ -610,7 +616,8 @@ to beethoven
   note i v 63 eighth
   note i v 59 eighth
   note i v 54 quarter
-
+  set altern true
+  ]
 end
 
 ;;; helpers
@@ -819,7 +826,7 @@ SWITCH
 320
 doSound
 doSound
-1
+0
 1
 -1000
 
