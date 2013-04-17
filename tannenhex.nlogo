@@ -9,8 +9,7 @@ breed [ pathnodes pathnode ]
 breed [ cities city ]
 
 undirected-link-breed [rail-links rail-link]
-globals [german-losses russian-losses waypoints tick-length tick-distance max-troops ger8th rus2nd]  ;<(^_^)>  ]
-
+globals [german-losses russian-losses waypoints tick-length tick-distance max-troops ger8th rus2nd]
                                                                                        ;Define instance variables of the different turtles
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
@@ -135,63 +134,9 @@ to add-terrain
                   color-terr green - 5 ] ] ] ] ] ] ]
 end
 
-
-; Add cities to the map
-to add-cities
-  create-cities 1 
-  [setxy 6 17
-    set size .5
-    set label "Osterode"
-  ]
-  create-cities 1 
-  [setxy 0 14
-    set size .5
-    set label "Deutsch Eylau"
-  ]
-  create-cities 1 
-  [setxy 2 13
-    set size .5
-    set label "Lobau"
-  ]
-  create-cities 1 
-  [setxy 4 8
-    set size .5
-    set label "Lautenberg"
-  ]
-  create-cities 1 
-  [setxy 16 19
-    set size .5
-    set label "Allenstein"
-  ]
-  create-cities 1 
-  [setxy 9 7
-    set size .5
-    set label "Soldau"
-  ]
-  create-cities 1 
-  [setxy 12 4
-    set size .5
-    set label "Mlawa"
-  ]
-  create-cities 1 
-  [setxy 25 14
-    set size .5
-    set label "Ortelsburg"
-  ]
-  create-cities 1 
-  [setxy 8 11
-    set size .5
-    set label "Tannenberg"
-  ] 
-  
-  ask cities [
-    set size .5
-    set color black
-    set label-color black
-  ]
-  
+to add-city [ xco yco lbl ]
+  create-cities 1 [setxy xco yco set size .5 set label lbl ]
 end
-
 
 ;; Color a terrain hex a certain color
 to color-terr [ col ] ask cells-here [ set color col ] end
@@ -210,7 +155,6 @@ end
 
 to go
   step
-  ;check-victory-conditions-for-army-surrender
 end
 
 ;use this function if you want victory conditions to be defined on an army-by-army basis
@@ -292,7 +236,6 @@ end
 to agg-attack [attacker proportion]
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
   
-  
   let defenders [neighb-enemies] of attacker ;agent-set of defending units
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
   if deftroops <= 1 [set defTroops 1]
@@ -362,9 +305,7 @@ to approach [unit]
             ]
           ]
         ]
-        [
-          move-to nextCell
-        ]
+        [ move-to nextCell ]
         set isEngaged false
       ]
     ]
@@ -442,6 +383,24 @@ to bfs [start div]
   
 end
 
+; Add cities to the map
+to add-cities
+  add-city 6 17 "Osterode"
+  add-city 0 14 "Deutsch Eylau"
+  add-city 2 13 "Lobau"
+  add-city 16 19 "Allenstein"
+  add-city 4 8 "Lautenberg"
+  add-city 9 7 "Soldau"
+  add-city 12 4 "Mlawa"
+  add-city 25 14 "Ortelsburg"
+  add-city 8 11 "Tannenberg"
+  
+  ask cities [
+    set size .5
+    set color black
+    set label-color black
+  ]
+end
 
 ; Add units
 to add-units
