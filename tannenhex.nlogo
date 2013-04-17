@@ -61,6 +61,8 @@ cells-own [
 units-own [
   team                ;; Which Faction this unit is a part of
   group               ;; Different groups willl exhibit different behaviors or follow different orders
+                      ;; group 0 = normal movement and reinforcement
+                      ;; group 1 = attacking-focused, no reinforcement
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
@@ -104,8 +106,8 @@ to setup-global-constants
                     ;set tick-distance ?
                     ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
-  set ger8th .6 ;tune this ;.6
-  set rus2nd .2 ;tune this ;.2
+  set ger8th .45 ;tune this ;.6
+  set rus2nd .15 ;tune this ;.2
 end
 
 to setup-global-counters
@@ -273,18 +275,21 @@ end
 to approach [unit]
     if (target != nobody) []
     
-  ask unit [
-    set-neighb-enemies self
-    
-    let defenders [neighb-enemies] of self
-    
-    ;if-else distance target <= 1 [ attack myself target 1 ]
-    if-else (count defenders > 0) [ 
-      set isEngaged true 
-      agg-attack myself 1 ]
-    [
-      ; If there are neighboring allied units in combat, reinforce them, otherwise move
-      if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 0
+    ask unit [
+      set-neighb-enemies self
+      
+      let myTeam [team] of self
+      let myGroup [group] of self
+      
+      let defenders [neighb-enemies] of self
+      
+      ;if-else distance target <= 1 [ attack myself target 1 ]
+      if-else (count defenders > 0) [ 
+        set isEngaged true 
+        agg-attack myself 1 ]
+      [
+        ; If there are neighboring allied units in combat, reinforce them, otherwise move
+        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = myTeam and myGroup != 1] > 0
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -301,9 +306,9 @@ to approach [unit]
         ]
         [ move-to nextCell
         ]
-      set isEngaged false
+        set isEngaged false
+      ]
     ]
-  ]
 end
 
 ;; Offscreen unit marching
@@ -430,31 +435,31 @@ to add-units
   ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
   
   ; I Corps - starts near Seebeger8th
-  add-unit 8 7 8000 ger8th 0 0
-  add-unit 8 8 8000 ger8th 0 0
-  add-unit 9 6 8000 ger8th 0 0
-  add-unit 8 9 8000 ger8th 0 0
-  add-unit 8 10 8000 ger8th 0 0
+  add-unit 9 5 8000 ger8th 0 1
+  add-unit 10 6 8000 ger8th 0 1
+  add-unit 10 7 8000 ger8th 0 1
+  add-unit 10 8 8000 ger8th 0 1
+  add-unit 10 9 8000 ger8th 0 1
   
   ; XVII Corps - starts south of Heilsburg
-  add-unit 25 19 8000 ger8th 0 0
-  add-unit 24 19 8000 ger8th 0 0
-  add-unit 24 20 8000 ger8th 0 0
-  add-unit 25 20 8000 ger8th 0 0
   add-unit 23 20 8000 ger8th 0 0
+  add-unit 23 19 8000 ger8th 0 0
+  add-unit 23 18 8000 ger8th 0 0
+  add-unit 23 17 8000 ger8th 0 0
+  add-unit 22 21 8000 ger8th 0 0
   
   ;German 8th
   ; IR Corps - Starts near XVII Corps
+  add-unit 18 22 8000 ger8th 0 0
+  add-unit 17 22 8000 ger8th 0 0
   add-unit 16 23 8000 ger8th 0 0
   add-unit 15 23 8000 ger8th 0 0
   add-unit 15 24 8000 ger8th 0 0
-  add-unit 16 24 8000 ger8th 0 0
-  add-unit 14 24 8000 ger8th 0 0
     
   ; XX Corps - Tannenberg
-  add-unit 8 12 8000 ger8th 0 0
+  add-unit 9 10 8000 ger8th 0 0
   add-unit 9 12 8000 ger8th 0 0
-  add-unit 8 11 8000 ger8th 0 0
+  add-unit 9 11 8000 ger8th 0 0
   add-unit 9 13 8000 ger8th 0 0
   add-unit 9 14 8000 ger8th 0 0
   
@@ -757,7 +762,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.2
+0.15
 .005
 1
 NIL
@@ -830,7 +835,7 @@ SWITCH
 320
 doSound
 doSound
-1
+0
 1
 -1000
 
