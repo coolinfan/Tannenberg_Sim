@@ -157,33 +157,6 @@ to go
   step
 end
 
-;use this function if you want victory conditions to be defined on an army-by-army basis
-to check-victory-conditions-for-army-surrender
-  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
-  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
-  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
-  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
-  
-  if-else southern-german-ratio > 3 [ ;southern german victory
-    let powCount (sum [troops] of units with [group = 2])
-    let powHandlers (round powCount / 10)
-    ask units with [group = 2] [die]
-    let totalGermanTroops sum [troops] of units with [group = 0]
-    ask units with [group = 0] [
-      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
-      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-    ]] 
-  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
-    let powCount (sum [troops] of units with [group = 0])
-    let powHandlers (round powCount / 10)
-    ask units with [group = 0] [die]
-    let totalRussianTroops sum [troops] of units with [group = 2]
-    ask units with [group = 2] [
-      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
-      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-    ]]]
-end
-
 ; Army Control procedures: Movement, Targetting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to move-armies
   set-targets
@@ -436,32 +409,34 @@ to add-units
   add-unit 8 11 8000 ger8th 0 0
   
   
+  let headStartOffset (headstart * 24)
+  
   ;  Russian 1st
   ;  IV Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 0 + headStartOffset
   
   ;  III Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 12 + headStartOffset
+  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 12 + headStartOffset
   
   ;  XX Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + headStartOffset
   
   
   ;Russian 2nd
@@ -542,6 +517,7 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;this is phased out because we are doing aggregate attack
 ; An attacker attacks the defender with a proportion of his firepower.
 to attack [attacker defender proportion]
   
@@ -572,6 +548,35 @@ to attack [attacker defender proportion]
   ]
 end
 
+;this is currently phased out because we are doing unit-by-unit surrender
+;use this function if you want victory conditions to be defined on an army-by-army basis
+to check-victory-conditions-for-army-surrender
+  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
+  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
+  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
+  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
+  
+  if-else southern-german-ratio > 3 [ ;southern german victory
+    let powCount (sum [troops] of units with [group = 2])
+    let powHandlers (round powCount / 10)
+    ask units with [group = 2] [die]
+    let totalGermanTroops sum [troops] of units with [group = 0]
+    ask units with [group = 0] [
+      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
+      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+    ]] 
+  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
+    let powCount (sum [troops] of units with [group = 0])
+    let powHandlers (round powCount / 10)
+    ask units with [group = 0] [die]
+    let totalRussianTroops sum [troops] of units with [group = 2]
+    ask units with [group = 2] [
+      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
+      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+    ]]]
+end
+
+;this is phased out because we are not incorporating rail
 to add-rail-link [ xa ya xb yb ]
   ask patch xa ya [ 
     ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
