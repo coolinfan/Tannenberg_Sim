@@ -6,7 +6,7 @@ globals [
   russian-losses    ;total russian losses so far
   battle-over       ;is battle over? (for termination of sim)
   
-  ; navigation
+                    ; navigation
   waypoints
   
   ; global constants
@@ -24,10 +24,10 @@ to step
 end
 
 to go 
- if not battle-over [ ;go until one side is no longer in play
+  if not battle-over [ ;go until one side is no longer in play
     step
     if (not any? units with [team = 0]) or (not any? units with [team = 1]) [ set battle-over true ]
- ]
+  ]
 end
 
 
@@ -68,8 +68,6 @@ dead-units-own [
   team
   troops
 ]
-
-rail-links-own []
 artilleries-own []
 
 pathnodes-own [
@@ -95,14 +93,14 @@ to setup
   add-terrain ;Draw Terrain from tannenhexmap.txt
   add-cities ;Add cities to the terrain
   add-units
-
+  
   reset-ticks
 end
 
 to setup-global-constants
   set tick-length 3 ;tick length in hours
-  ;set tick-distance ?
-  ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
+                    ;set tick-distance ?
+                    ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
   set ger8th .6 ;tune this ;.6
   set rus2nd .4 ;tune this ;.2
@@ -127,7 +125,7 @@ to setup-grid
   
   foreach sort (patches)
   [
-  ask ?
+    ask ?
     [ sprout-cells 1
       [ set size 1.4
         set color green - 3  ;; dark gray
@@ -219,7 +217,7 @@ to agg-attack [attacker proportion]
     let actualLosses 0
     if-else troops < 0 [set actualLosses oldTroops][set actualLosses oldTroops - troops]
     
-  if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
+    if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
     [set german-losses german-losses + actualLosses]
     
     if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
@@ -265,18 +263,18 @@ to approach-armies
   ]
 end
 
-to approach [unit]
+to approach [unit
+    if (target != nobody) []
   ask unit [
     let defenders [neighb-enemies] of self
     
-    if (target != nobody) [
-      ;if-else distance target <= 1 [ attack myself target 1 ]
-      if-else (count defenders > 0) [ 
-        set isEngaged true 
-        agg-attack myself 1 ]
-      [
-        ; If there are neighboring allied units in combat, reinforce them, otherwise move
-        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 0
+    ;if-else distance target <= 1 [ attack myself target 1 ]
+    if-else (count defenders > 0) [ 
+      set isEngaged true 
+      agg-attack myself 1 ]
+    [
+      ; If there are neighboring allied units in combat, reinforce them, otherwise move
+      if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self] > 0
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -291,9 +289,9 @@ to approach [unit]
             ]
           ]
         ]
-        [ move-to nextCell ]
-        set isEngaged false
-      ]
+        [ move-t
+    ]o nextCell ]
+      set isEngaged false
     ]
   ]
 end
@@ -559,7 +557,7 @@ to attack [attacker defender proportion]
     if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
       ask patch [xcor] of defender [ycor] of defender [ sprout-dead-units 1 [
         set troops [troops] of defender
-        set team [team] of defender
+        set team[team] of defender
         display-unit team
         set russian-losses (russian-losses + [troops] of defender)
       ] ]
@@ -592,15 +590,14 @@ to check-victory-conditions-for-army-surrender
     let totalRussianTroops sum [troops] of units with [group = 2]
     ask units with [group = 2] [
       let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
-      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-    ]]]
-end
-
+      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the pe
 ;this is phased out because we are not incorporating rail
 to add-rail-link [ xa ya xb yb ]
   ask patch xa ya [ 
     ask cells-here [ create-rail-link-with one-of cells-on patch xb yb [ set color yellow set shape "line2" ]]
   ]
+endrcentage of troops in this unit
+    ]]]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
