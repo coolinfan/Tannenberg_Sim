@@ -173,8 +173,8 @@ end
 ;;    Target Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to set-neighb-enemies
-  ask units [
+to set-neighb-enemies [unit]
+  ask unit [
     let teamNumber [team] of self
     set neighb-enemies report-adjacent-units with [team != teamNumber] ;(units with [team != teamNumber and distance myself <= 1.1])
   ]
@@ -234,7 +234,6 @@ end
 
 to move-armies
   set-targets
-  set-neighb-enemies
   approach-armies
   ;ask (units with [travelling = false]) [ approach self ]
   
@@ -260,9 +259,12 @@ to approach-armies
   ]
 end
 
-to approach [unit
+to approach [unit]
     if (target != nobody) []
+    
   ask unit [
+    set-neighb-enemies self
+    
     let defenders [neighb-enemies] of self
     
     ;if-else distance target <= 1 [ attack myself target 1 ]
@@ -286,8 +288,8 @@ to approach [unit
             ]
           ]
         ]
-        [ move-t
-    ]o nextCell ]
+        [ move-to nextCell
+        ]
       set isEngaged false
     ]
   ]
