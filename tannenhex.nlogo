@@ -58,7 +58,8 @@ to setup
   setup-waypoints
   
   ;Imports the game map
-  ;  import-drawing "Game Map Scoped.png"
+    import-drawing "Game Map Scoped.png"
+    ask cells [ set hidden? true]
   
   ;Draw Terrain from tannenhexmap.txt
   add-terrain
@@ -621,11 +622,11 @@ end
 GRAPHICS-WINDOW
 251
 10
-1204
-639
+1081
+561
 -1
 -1
-23.0
+20.0
 1
 10
 1
@@ -705,7 +706,7 @@ mapSize
 mapSize
 1
 50
-23
+20
 1
 1
 NIL
@@ -720,7 +721,7 @@ headstart
 headstart
 0
 4
-3
+0
 .125
 1
 NIL
