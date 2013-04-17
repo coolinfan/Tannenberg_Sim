@@ -101,7 +101,7 @@ to setup-global-constants
                     ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
   set ger8th .6 ;tune this ;.6
-  set rus2nd .4 ;tune this ;.2
+  set rus2nd .2 ;tune this ;.2
 end
 
 to setup-global-counters
@@ -421,18 +421,18 @@ to add-units
   ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
   
   ; I Corps - starts near Seebeger8th
-  add-unit 4 8 8000 ger8th 0 0
+  add-unit 6 7 8000 ger8th 0 0
   add-unit 5 8 8000 ger8th 0 0
   add-unit 5 7 8000 ger8th 0 0
-  add-unit 5 9 8000 ger8th 0 0
+  add-unit 6 9 8000 ger8th 0 0
   add-unit 6 10 8000 ger8th 0 0
   
   ; XVII Corps - starts south of Heilsburg
-  add-unit 23 23 8000 ger8th 0 0
-  add-unit 22 23 8000 ger8th 0 0
-  add-unit 22 24 8000 ger8th 0 0
-  add-unit 23 24 8000 ger8th 0 0
-  add-unit 21 24 8000 ger8th 0 0
+  add-unit 25 19 8000 ger8th 0 0
+  add-unit 24 19 8000 ger8th 0 0
+  add-unit 24 20 8000 ger8th 0 0
+  add-unit 25 20 8000 ger8th 0 0
+  add-unit 23 20 8000 ger8th 0 0
   
   ;German 8th
   ; IR Corps - Starts near XVII Corps
@@ -445,9 +445,9 @@ to add-units
   ; XX Corps - Tannenberg
   add-unit 8 12 8000 ger8th 0 0
   add-unit 9 12 8000 ger8th 0 0
-  add-unit 10 13 8000 ger8th 0 0
-  add-unit 8 13 8000 ger8th 0 0
   add-unit 8 11 8000 ger8th 0 0
+  add-unit 9 13 8000 ger8th 0 0
+  add-unit 9 14 8000 ger8th 0 0
   
   let headStartOffset (headstart * 24)
   
@@ -482,32 +482,32 @@ to add-units
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  add-unit 9 5 10000 rus2nd 1 2
-  add-unit 10 6 10000 rus2nd 1 2
-  add-unit 10 7 10000 rus2nd 1 2
-  add-unit 11 8 10000 rus2nd 1 2
-  add-unit 10 8 10000 rus2nd 1 2
-  add-unit 11 9 10000 rus2nd 1 2
-  add-unit 10 9 10000 rus2nd 1 2
+  add-unit 13 9 10000 rus2nd 1 2
+  add-unit 13 10 10000 rus2nd 1 2
+  add-unit 13 11 10000 rus2nd 1 2
+  add-unit 14 12 10000 rus2nd 1 2
+  add-unit 13 12 10000 rus2nd 1 2
+  add-unit 14 13 10000 rus2nd 1 2
+  add-unit 13 13 10000 rus2nd 1 2
   
-  ; VI Corps was harldy a factor, so not included
+  ; VI Corps was hardly a factor, so not included
   
   ; XIII Corps - northeast of Orlau
-  add-unit 17 14 10000 rus2nd 1 2
   add-unit 17 15 10000 rus2nd 1 2
-  add-unit 18 16 10000 rus2nd 1 2
-  add-unit 18 17 10000 rus2nd 1 2
-  add-unit 19 17 10000 rus2nd 1 2
-  add-unit 19 16 10000 rus2nd 1 2
+  add-unit 15 15 10000 rus2nd 1 2
+  add-unit 16 16 10000 rus2nd 1 2
+  add-unit 16 17 10000 rus2nd 1 2
+  add-unit 17 17 10000 rus2nd 1 2
   add-unit 17 16 10000 rus2nd 1 2
+  add-unit 15 16 10000 rus2nd 1 2
   
   ; XV Corps - Just south of Orlau
-  add-unit 14 10 10000 rus2nd 1 2
-  add-unit 15 11 10000 rus2nd 1 2
+  add-unit 15 14 10000 rus2nd 1 2
+  add-unit 16 15 10000 rus2nd 1 2
+  add-unit 14 15 10000 rus2nd 1 2
   add-unit 15 12 10000 rus2nd 1 2
-  add-unit 16 12 10000 rus2nd 1 2
-  add-unit 16 13 10000 rus2nd 1 2
-  add-unit 16 14 10000 rus2nd 1 2
+  add-unit 15 13 10000 rus2nd 1 2
+  add-unit 14 14 10000 rus2nd 1 2
 end
 
 ; Add cities to the map
@@ -521,6 +521,7 @@ to add-cities
   add-city 12 4 "Mlawa"
   add-city 25 14 "Ortelsburg"
   add-city 8 11 "Tannenberg"
+  add-city 16 9 "Neidenburg"
   
   ask cities [
     set size .5
@@ -612,6 +613,7 @@ to beethoven
   note i v 59 eighth
   note i v 54 quarter
   set altern true
+  ]
 end
 
 ;;; helpers
@@ -747,7 +749,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.21
+0.2
 .005
 1
 NIL
