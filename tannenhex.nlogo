@@ -73,8 +73,8 @@ to setup
   set max-troops 10000
   
   ;add-rail
-  set ger8th .8
-  set rus2nd .25
+  set ger8th .6
+  set rus2nd .2
   add-units
   set german-losses 0
   set russian-losses 0
@@ -261,12 +261,7 @@ to approach-armies
     [
       ask ? [ 
         let myteam team
-        if (not any? ([hex-neighbors] of (one-of cells-here)) with [count units-here with [team != myteam] != 0])
-        [
-          if is-turtle? target [
-            bfs (one-of cells-here) (self)
-          ]
-        ]
+        bfs (one-of cells-here) (self)
         approach self
       ]
     ]
@@ -296,8 +291,6 @@ end
 to agg-attack [attacker proportion]
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
   
-  if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
-    [set german-losses (german-losses + attackDamage)]
   
   let defenders [neighb-enemies] of attacker ;agent-set of defending units
   let defTroops sum [troops] of defenders ;defTroops is the total number of defending (adjacent) troops
@@ -308,13 +301,21 @@ to agg-attack [attacker proportion]
   ask defenders [
     let troopFrac (troops / defTroops) ;the percentage of troops in this unit out of all defending units
     let losses (troopFrac * attackDamage)
-    ask self [set troops (round troops - losses)] ;scale attack damage by the percentage of troops in this unit
+    let oldTroops troops
+    set troops (round troops - losses) ;scale attack damage by the percentage of troops in this unit
+    let newTroops troops
+    let actualLosses 0
+    if-else troops < 0 [set actualLosses oldTroops][set actualLosses oldTroops - troops]
+    
+  if-else [team] of attacker = 0 [ set russian-losses russian-losses + actualLosses ]
+    [set german-losses german-losses + actualLosses]
+    
     if-else (victoryRatio > 3)[ ask self [die] ] ;surrender point
     [
       if ([troops] of self < (0.45 * [maxTroops] of self) and [team] of self = 1) [
         ask patch [xcor] of self [ycor] of self [ sprout-dead-units 1 [
           set size 0.8
-          set troops [troops] of self
+          set troops newTroops
           set team 1
           display-unit team
           set russian-losses (russian-losses + [troops] of self)
@@ -418,7 +419,7 @@ to bfs [start div]
         set queue lput ? queue
         table:put dict [who] of ? currHex
         
-        if (count (units-on ?) with [team != [team] of div]) > 0
+        if (count (units-on ?) with [team != [team] of div and hidden? = false]) > 0
         [
           set found true
           set goal ?
@@ -475,33 +476,33 @@ to add-units
   add-unit 8 11 8000 ger8th 0 0
   
   
-;  ;  Russian 1st
-;  ;  IV Corps
-;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  add-approaching-unit 29 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
-;  
-;  ;  III Corps
-;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  add-approaching-unit 29 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
-;  
-;  ;  XX Corps
-;  add-approaching-unit 25 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  add-approaching-unit 26 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  add-approaching-unit 27 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  add-approaching-unit 28 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  add-approaching-unit 28 24 10000 ruseffectiveness 1 1 18 + (headstart * 24)
-;  
+  ;  Russian 1st
+  ;  IV Corps
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 0 + (headstart * 24)
+  
+  ;  III Corps
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 12 + (headstart * 24)
+  
+  ;  XX Corps
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + (headstart * 24)
+  
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
@@ -590,8 +591,6 @@ to attack [attacker defender proportion]
   ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
   
-  if-else [team] of attacker = 0 [ set russian-losses russian-losses + attackDamage ]
-  [set german-losses (german-losses + attackDamage)]
   
   ;ask attacker [set troops (troops - defendDamage)]
   ask defender [set troops (round troops - (attackDamage))]
@@ -721,7 +720,7 @@ headstart
 headstart
 0
 4
-0.375
+3
 .125
 1
 NIL
@@ -736,7 +735,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.2
+0.4
 .005
 1
 NIL
