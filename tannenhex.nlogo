@@ -623,6 +623,7 @@ to beethoven
   note i v 54 quarter
   set altern true
   ]
+end
 ;;; helpers
 
 to note [instrument velocity pitch duration]
