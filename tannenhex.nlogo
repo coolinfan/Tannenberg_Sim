@@ -60,9 +60,9 @@ cells-own [
 
 units-own [
   team                ;; Which Faction this unit is a part of
-  group               ;; Different groups willl exhibit different behaviors or follow different orders
-                      ;; group 0 = normal movement and reinforcement
-                      ;; group 1 = attacking-focused, no reinforcement
+  unitType               ;; Different unitTypes willl exhibit different behaviors or follow different orders
+                      ;; unitType 0 = normal movement and reinforcement
+                      ;; unitType 1 = attacking-focused, no reinforcement
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
@@ -106,8 +106,8 @@ to setup-global-constants
                     ;set tick-distance ?
                     ;Max troops deployed in a single square km is roughly 400, so max troops per 25 square km (one hex) is 10000
   set max-troops 10000
-  set ger8th .45 ;tune this ;.6
-  set rus2nd .15 ;tune this ;.2
+  set ger8th .3 ;tune this ;.6
+  set rus2nd .1 ;tune this ;.2
 end
 
 to setup-global-counters
@@ -279,7 +279,7 @@ to approach [unit]
       set-neighb-enemies self
       
       let myTeam [team] of self
-      let myGroup [group] of self
+      let myUnitType [unitType] of self
       
       let defenders [neighb-enemies] of self
       
@@ -289,7 +289,7 @@ to approach [unit]
         agg-attack myself 1 ]
       [
         ; If there are neighboring allied units in combat, reinforce them, otherwise move
-        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = myTeam and myGroup != 1] > 0
+        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = myTeam and myUnitType != 1] > 0
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -381,8 +381,8 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Generate a unit at the given position with the given troops, effectiveness, and allegiance.
-;; add-unit x-coordinate y-coordinate troops effectiveness team(0 is german, 1 is russian) group
-to add-unit [ xco yco introops effectiveness allegiance ingroup]
+;; add-unit x-coordinate y-coordinate troops effectiveness team(0 is german, 1 is russian) unitType
+to add-unit [ xco yco introops effectiveness allegiance inUnitType]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
   ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
@@ -391,7 +391,7 @@ to add-unit [ xco yco introops effectiveness allegiance ingroup]
     set maxTroops troops
     set aimedWeapons effectiveness
     set target [-1 -1]
-    set group ingroup
+    set unitType inUnitType
     set neighb-enemies []
     set travelTime 0
     set travelling false
@@ -410,7 +410,7 @@ to add-dead-unit [ newTroops ]
 end
 
 ;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
-to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup miles]
+to add-approaching-unit [ xco yco introops effectiveness allegiance inUnitType miles]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
   ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
@@ -419,7 +419,7 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance ingroup mile
     set maxTroops troops
     set aimedWeapons effectiveness
     set target [-1 -1]
-    set group ingroup
+    set unitType inUnitType
     set neighb-enemies []
     set travelTime miles
     set travelling true
@@ -432,7 +432,7 @@ end
 
 ; Add units
 to add-units
-  ; add-unit x y troops effectiveness team(0 is german, 1 is russian) group
+  ; add-unit x y troops effectiveness team(0 is german, 1 is russian) unitType
   
   ; I Corps - starts near Seebeger8th
   add-unit 9 5 8000 ger8th 0 1
@@ -468,13 +468,13 @@ to add-units
   if (firstRussianArmy) [
   ;  Russian 1st
   ;  IV Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 0 + headStartOffset
-  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 0 + headStartOffset
+  add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 30 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 31 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 32 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 33 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 32 24 10000 ruseffectiveness 1 0 0 + headStartOffset
+  add-approaching-unit 33 24 10000 ruseffectiveness 1 0 0 + headStartOffset
   
   ;  III Corps
   add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + headStartOffset
@@ -496,32 +496,32 @@ to add-units
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  add-unit 14 11 10000 rus2nd 1 2
-  add-unit 13 10 10000 rus2nd 1 2
-  add-unit 13 11 10000 rus2nd 1 2
-  add-unit 14 12 10000 rus2nd 1 2
-  add-unit 13 12 10000 rus2nd 1 2
-  add-unit 14 13 10000 rus2nd 1 2
-  add-unit 13 13 10000 rus2nd 1 2
+  add-unit 14 11 10000 rus2nd 1 0
+  add-unit 13 10 10000 rus2nd 1 0
+  add-unit 13 11 10000 rus2nd 1 0
+  add-unit 14 12 10000 rus2nd 1 0
+  add-unit 13 12 10000 rus2nd 1 0
+  add-unit 14 13 10000 rus2nd 1 0
+  add-unit 13 13 10000 rus2nd 1 0
   
   ; VI Corps was hardly a factor, so not included
   
   ; XIII Corps - northeast of Orlau
-  add-unit 17 15 10000 rus2nd 1 2
-  add-unit 15 15 10000 rus2nd 1 2
-  add-unit 16 16 10000 rus2nd 1 2
-  add-unit 16 17 10000 rus2nd 1 2
-  add-unit 17 17 10000 rus2nd 1 2
-  add-unit 17 16 10000 rus2nd 1 2
-  add-unit 15 16 10000 rus2nd 1 2
+  add-unit 17 15 10000 rus2nd 1 0
+  add-unit 15 15 10000 rus2nd 1 0
+  add-unit 16 16 10000 rus2nd 1 0
+  add-unit 16 17 10000 rus2nd 1 0
+  add-unit 17 17 10000 rus2nd 1 0
+  add-unit 17 16 10000 rus2nd 1 0
+  add-unit 15 16 10000 rus2nd 1 0
   
   ; XV Corps - Just south of Orlau
-  add-unit 15 14 10000 rus2nd 1 2
-  add-unit 16 15 10000 rus2nd 1 2
-  add-unit 14 15 10000 rus2nd 1 2
-  add-unit 15 12 10000 rus2nd 1 2
-  add-unit 15 13 10000 rus2nd 1 2
-  add-unit 14 14 10000 rus2nd 1 2
+  add-unit 15 14 10000 rus2nd 1 0
+  add-unit 16 15 10000 rus2nd 1 0
+  add-unit 14 15 10000 rus2nd 1 0
+  add-unit 15 12 10000 rus2nd 1 0
+  add-unit 15 13 10000 rus2nd 1 0
+  add-unit 14 14 10000 rus2nd 1 0
 end
 
 ; Add cities to the map
@@ -584,31 +584,31 @@ end
 
 ;this is currently phased out because we are doing unit-by-unit surrender
 ;use this function if you want victory conditions to be defined on an army-by-army basis
-to check-victory-conditions-for-army-surrender
-  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
-  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
-  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
-  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
-  
-  if-else southern-german-ratio > 3 [ ;southern german victory
-    let powCount (sum [troops] of units with [group = 2])
-    let powHandlers (round powCount / 10)
-    ask units with [group = 2] [die]
-    let totalGermanTroops sum [troops] of units with [group = 0]
-    ask units with [group = 0] [
-      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
-      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-    ]] 
-  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
-    let powCount (sum [troops] of units with [group = 0])
-    let powHandlers (round powCount / 10)
-    ask units with [group = 0] [die]
-    let totalRussianTroops sum [troops] of units with [group = 2]
-    ask units with [group = 2] [
-      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
-      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-    ]]]
-end
+;to check-victory-conditions-for-army-surrender
+;  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
+;  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
+;  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
+;  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
+;  
+;  if-else southern-german-ratio > 3 [ ;southern german victory
+;    let powCount (sum [troops] of units with [group = 2])
+;    let powHandlers (round powCount / 10)
+;    ask units with [group = 2] [die]
+;    let totalGermanTroops sum [troops] of units with [group = 0]
+;    ask units with [group = 0] [
+;      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
+;      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+;    ]] 
+;  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
+;    let powCount (sum [troops] of units with [group = 0])
+;    let powHandlers (round powCount / 10)
+;    ask units with [group = 0] [die]
+;    let totalRussianTroops sum [troops] of units with [group = 2]
+;    ask units with [group = 2] [
+;      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
+;      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
+;    ]]]
+;end
 
 ;;;;;;SOUND FUNCTIONS;;;;;;;
 
@@ -747,7 +747,7 @@ headstart
 headstart
 0
 4
-1.75
+0
 .125
 1
 NIL
@@ -762,7 +762,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.15
+0.1
 .005
 1
 NIL
@@ -829,13 +829,13 @@ TEXTBOX
 1
 
 SWITCH
-69
-287
-169
-320
+70
+288
+191
+321
 doSound
 doSound
-0
+1
 1
 -1000
 
