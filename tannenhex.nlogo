@@ -7,7 +7,7 @@ globals [
   battle-over       ;is battle over? (for termination of sim)
   hours-passed 
   
-                    ; navigation
+  ; navigation
   waypoints
   
   ; global constants
@@ -61,8 +61,9 @@ cells-own [
 units-own [
   team                ;; Which Faction this unit is a part of
   unitType               ;; Different unitTypes willl exhibit different behaviors or follow different orders
-                      ;; unitType 0 = normal movement and reinforcement
-                      ;; unitType 1 = attacking-focused, no reinforcement
+                         ;; unitType 0 = normal movement and reinforcement
+                         ;; unitType 1 = attacking-focused, no reinforcement
+                         ;; unitType 2 = defensive-minded, no movement or reinforcement
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
   aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
@@ -129,7 +130,7 @@ to setup-grid
   set-default-shape dead-units "x"
   set-default-shape cities "flag"
   
-  foreach sort (patches)
+  foreach sort-by > (patches)
   [
     ask ?
     [ sprout-cells 1
@@ -273,23 +274,23 @@ to approach-armies
 end
 
 to approach [unit]
-    if (target != nobody) []
+  if (target != nobody) []
+  
+  ask unit [
+    set-neighb-enemies self
     
-    ask unit [
-      set-neighb-enemies self
-      
-      let myTeam [team] of self
-      let myUnitType [unitType] of self
-      
-      let defenders [neighb-enemies] of self
-      
-      ;if-else distance target <= 1 [ attack myself target 1 ]
-      if-else (count defenders > 0) [ 
-        set isEngaged true 
-        agg-attack myself 1 ]
-      [
-        ; If there are neighboring allied units in combat, reinforce them, otherwise move
-        if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = myTeam and myUnitType != 1] > 0
+    let myTeam [team] of self
+    let myUnitType [unitType] of self
+    
+    let defenders [neighb-enemies] of self
+    
+    ;if-else distance target <= 1 [ attack myself target 1 ]
+    if-else (count defenders > 0) [ 
+      set isEngaged true 
+      agg-attack myself 1 ]
+    [
+      ; If there are neighboring allied units in combat, reinforce them, otherwise move
+      if-else count (units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = myTeam and myUnitType = 0] > 0
         [
           foreach sort(( units-on [hex-neighbors] of one-of cells-here) with [isEngaged = true and team = [team] of self])[
             if troops > 0 and [troops] of ? < max-troops[
@@ -304,11 +305,15 @@ to approach [unit]
             ]
           ]
         ]
-        [ move-to nextCell
+        [
+          if myUnitType != 2
+          [
+            move-to nextCell
+          ]
         ]
-        set isEngaged false
-      ]
+      set isEngaged false
     ]
+  ]
 end
 
 ;; Offscreen unit marching
@@ -400,13 +405,13 @@ to add-unit [ xco yco introops effectiveness allegiance inUnitType]
 end
 
 to add-dead-unit [ newTroops ]
-  sprout-dead-units 1 [
-    set size 0.8
-    set troops newTroops
-    set team 1
-    display-unit team
-    set russian-losses (russian-losses + [troops] of self)
-  ]
+  ;  sprout-dead-units 1 [
+  ;    set size 0.8
+  ;    set troops newTroops
+  ;    set team 1
+  ;    display-unit team
+  ;    set russian-losses (russian-losses + [troops] of self)
+  ;  ]
 end
 
 ;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
@@ -434,108 +439,117 @@ end
 to add-units
   ; add-unit x y troops effectiveness team(0 is german, 1 is russian) unitType
   
-  ; I Corps - starts near Seebeger8th
-  add-unit 9 5 8000 ger8th 0 1
-  add-unit 10 6 8000 ger8th 0 1
-  add-unit 10 7 8000 ger8th 0 1
-  add-unit 10 8 8000 ger8th 0 1
-  add-unit 10 9 8000 ger8th 0 1
+  ; I Corps - starts near Seeben    
+  add-unit 10 3 7000 ger8th 0 1
+  add-unit 10 4 7000 ger8th 0 1
+  add-unit 10 5 7000 ger8th 0 1
+  add-unit 10 6 7000 ger8th 0 1
+  add-unit 11 7 7000 ger8th 0 1
+  add-unit 9 3 7000 ger8th 0 1  
+  
+  ; XX Corps - Tannenberg
+  add-unit 11 8 6000 ger8th 0 0
+  add-unit 11 9 6000 ger8th 0 0
+  add-unit 11 10 6000 ger8th 0 0
+  add-unit 11 11 6000 ger8th 0 0
+  add-unit 11 12 6000 ger8th 0 0
+  add-unit 11 13 6000 ger8th 0 0
+  add-unit 11 14 9000 ger8th 0 0
   
   ; XVII Corps - starts south of Heilsburg
-  add-unit 23 20 8000 ger8th 0 0
-  add-unit 23 19 8000 ger8th 0 0
-  add-unit 23 18 8000 ger8th 0 0
-  add-unit 23 17 8000 ger8th 0 0
-  add-unit 22 21 8000 ger8th 0 0
+  add-unit 24 20 8000 ger8th 0 0
+  add-unit 24 19 8000 ger8th 0 0
+  add-unit 24 18 8000 ger8th 0 0
+  add-unit 24 17 8000 ger8th 0 0
+  add-unit 25 20 8000 ger8th 0 0
   
   ;German 8th
   ; IR Corps - Starts near XVII Corps
-  add-unit 18 22 8000 ger8th 0 0
-  add-unit 17 22 8000 ger8th 0 0
+  add-unit 16 22 8000 ger8th 0 1
+  add-unit 17 22 8000 ger8th 0 1
   add-unit 16 23 8000 ger8th 0 0
   add-unit 15 23 8000 ger8th 0 0
-  add-unit 15 24 8000 ger8th 0 0
-    
-  ; XX Corps - Tannenberg
-  add-unit 9 10 8000 ger8th 0 0
-  add-unit 9 12 8000 ger8th 0 0
-  add-unit 9 11 8000 ger8th 0 0
-  add-unit 9 13 8000 ger8th 0 0
-  add-unit 9 14 8000 ger8th 0 0
+  add-unit 15 22 8000 ger8th 0 1
   
   let headStartOffset (headstart * 24)
   
   if (firstRussianArmy) [
-  ;  Russian 1st
-  ;  IV Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 0 0 + headStartOffset
-  add-approaching-unit 33 24 10000 ruseffectiveness 1 0 0 + headStartOffset
-  
-  ;  III Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 12 + headStartOffset
-  add-approaching-unit 33 24 10000 ruseffectiveness 1 1 12 + headStartOffset
-  
-  ;  XX Corps
-  add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + headStartOffset
-  add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + headStartOffset
-  add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + headStartOffset
-  add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + headStartOffset
-  add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + headStartOffset
-  add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + headStartOffset
+    ;  Russian 1st
+    ;  IV Corps
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 30 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 31 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 32 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 33 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 30 24 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 31 24 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 32 24 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 33 24 10000 ruseffectiveness 1 0 0 + headStartOffset
+    
+    ;  III Corps
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 30 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 31 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 32 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 33 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 32 24 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 33 24 10000 ruseffectiveness 1 0 12 + headStartOffset
+    
+    ;  XX Corps
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 33 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 32 24 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 33 24 10000 ruseffectiveness 1 1 18 + headStartOffset
   ]
   
   ;Russian 2nd
   ; I Corps - Just south of Soldau
-  add-unit 14 11 10000 rus2nd 1 0
-  add-unit 13 10 10000 rus2nd 1 0
-  add-unit 13 11 10000 rus2nd 1 0
-  add-unit 14 12 10000 rus2nd 1 0
-  add-unit 13 12 10000 rus2nd 1 0
-  add-unit 14 13 10000 rus2nd 1 0
-  add-unit 13 13 10000 rus2nd 1 0
+  add-unit 16 10 10000 rus2nd 1 0
+  add-unit 16 13 10000 rus2nd 1 0
+  add-unit 16 14 10000 rus2nd 1 0
+  add-unit 16 11 10000 rus2nd 1 0
+  add-unit 16 15 10000 rus2nd 1 0
+  add-unit 16 12 10000 rus2nd 1 0
   
   ; VI Corps was hardly a factor, so not included
   
   ; XIII Corps - northeast of Orlau
+  add-unit 16 16 10000 rus2nd 1 0
   add-unit 17 15 10000 rus2nd 1 0
-  add-unit 15 15 10000 rus2nd 1 0
   add-unit 16 16 10000 rus2nd 1 0
   add-unit 16 17 10000 rus2nd 1 0
-  add-unit 17 17 10000 rus2nd 1 0
   add-unit 17 16 10000 rus2nd 1 0
-  add-unit 15 16 10000 rus2nd 1 0
   
   ; XV Corps - Just south of Orlau
-  add-unit 15 14 10000 rus2nd 1 0
-  add-unit 16 15 10000 rus2nd 1 0
-  add-unit 14 15 10000 rus2nd 1 0
-  add-unit 15 12 10000 rus2nd 1 0
-  add-unit 15 13 10000 rus2nd 1 0
-  add-unit 14 14 10000 rus2nd 1 0
+  add-unit 17 14 10000 rus2nd 1 0
+  add-unit 18 15 10000 rus2nd 1 0
+  add-unit 18 16 10000 rus2nd 1 0
+  add-unit 17 12 10000 rus2nd 1 0
+  add-unit 17 13 10000 rus2nd 1 0
+  
+  ; XXIII Corps - defensive position near neidenburg
+  add-unit 18 11 10000 rus2nd 1 2
+  add-unit 17 10 10000 rus2nd 1 2
+  add-unit 17 11 10000 rus2nd 1 2
+  add-unit 18 10 10000 rus2nd 1 2
+  
 end
-
 ; Add cities to the map
 to add-cities
   add-city 6 17 "Osterode"
   add-city 0 14 "Deutsch Eylau"
   add-city 2 13 "Lobau"
-  add-city 16 19 "Allenstein"
+  add-city 16 18 "Allenstein"
   add-city 4 6 "Lautenberg"
-  add-city 9 7 "Soldau"
-  add-city 12 4 "Mlawa"
+  add-city 9 6 "Soldau"
+  add-city 8 8 "Seeben"
+  add-city 16 1 "Mlawa"
   add-city 25 14 "Ortelsburg"
   add-city 8 11 "Tannenberg"
-  add-city 16 9 "Neidenburg"
+  add-city 17 9 "Neidenburg"
   
   ask cities [
     set size .5
@@ -567,7 +581,7 @@ to attack [attacker defender proportion]
   
   ;ask attacker [set troops (troops - defendDamage)]
   ask defender [set troops (round troops - (attackDamage))]
-
+  
   if-else [troops] of defender < 0 [ ask defender [die] ]
   [
     if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
@@ -614,8 +628,8 @@ end
 
 to beethoven
   ifelse altern [
-  sound:play-sound "Horse.wav"
-  set altern false
+    sound:play-sound "Horse.wav"
+    set altern false
   ][
   set clock 0
   let i "Trumpet"
@@ -648,11 +662,11 @@ to-report eighth  report  30 / 240 end
 GRAPHICS-WINDOW
 251
 10
-1081
-561
+1122
+587
 -1
 -1
-20.0
+21.0
 1
 10
 1
@@ -732,7 +746,7 @@ mapSize
 mapSize
 1
 50
-20
+21
 1
 1
 NIL
@@ -814,7 +828,7 @@ SWITCH
 115
 firstRussianArmy
 firstRussianArmy
-1
+0
 1
 -1000
 
