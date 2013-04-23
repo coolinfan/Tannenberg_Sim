@@ -352,6 +352,7 @@ to bfs [start div]
   
   table:put dict [who] of start nobody
   
+  ;; Runs until it finds target, or until all spaces have been explored.
   while [found = false]
   [
     ; "Dequeue" one hex
@@ -425,8 +426,8 @@ to add-dead-unit [ newTroops ]
   ;  ]
 end
 
-;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.
-to add-approaching-unit [ xco yco introops effectiveness allegiance inUnitType miles]
+;; Generate an off-screen unit.  xco and yco represent the space in which they will appear.  hours refers to the time remaining for the unit to travel before it appears at (xco, yco).
+to add-approaching-unit [ xco yco introops effectiveness allegiance inUnitType hours]
   let loc-set 0
   while [ loc-set = 0 ] [ask patch xco yco [ ask cells-here [ if-else terrain != 1 [set loc-set 1] [set yco yco + 1]]]]
   ask patch xco yco [ sprout-units 1 [ display-unit allegiance 
@@ -437,12 +438,12 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance inUnitType m
     set target [-1 -1]
     set unitType inUnitType
     set neighb-enemies []
-    set travelTime miles
+    set travelTime hours
     set travelling true
     hide-turtle]]
 end
 
-;; Helper function to add a city
+;; Helper function to add a city  
 to add-city [ xco yco lbl ]
   create-cities 1 [
     setxy xco yco 
@@ -452,7 +453,7 @@ end
 
 ;; Add all units to the simulation
 to add-units
-  ; add-unit x y troops effectiveness team (0:german, 1:russian) unitType
+  ; add-unit x y troops effectiveness team (0:german, 1:russian) unitType (affects behavior)
   add-unit 10 3 7000 ger8th 0 1  ; I Corps - starts near Seeben  
   add-unit 10 4 7000 ger8th 0 1
   add-unit 10 5 7000 ger8th 0 1
@@ -485,6 +486,7 @@ to add-units
   
   if (firstRussianArmy) [
     ;  Russian 1st
+    ;  add-approaching-unit x y troops effectiveness team(0: german, 1: russian) unitType(affects behavior) (hours of travel remaining)
     add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset    ;  IV Corps
     add-approaching-unit 30 25 10000 ruseffectiveness 1 0 0 + headStartOffset
     add-approaching-unit 31 25 10000 ruseffectiveness 1 0 0 + headStartOffset
