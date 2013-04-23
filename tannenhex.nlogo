@@ -1,4 +1,4 @@
-extensions[table sound]
+extensions[table]
 
 globals [
   ; counters
@@ -18,25 +18,25 @@ globals [
   rus2nd            ;effectiveness of russian 2nd army
   
   clock
-  altern
 ]
 
 to step
-  if doSound [ beethoven ]
   move-armies
-  set hours-passed hours-passed + tick-length
-  ask units [ set size (.8 * troops / max-troops) + 0.4 ] ;set visual size based on num troops
+  set hours-passed (hours-passed + tick-length)
+  size-armies
   tick
 end
 
 to go 
-  if not battle-over [ ;go until one side is no longer in play
+  ; go until one side is no longer in play
+  if not battle-over [
     step
     if (not any? units with [team = 0]) or (not any? units with [team = 1]) [ set battle-over true ]
   ]
 end
 
-to-report days-passed report (26 + hours-passed / 24) end
+;; Number of days after August 26, 1914 elapsed
+to-report days-passed report (0 + hours-passed / 24) end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,11 +44,8 @@ to-report days-passed report (26 + hours-passed / 24) end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 breed [ cells cell ] ;Hexagonal cells
-breed [ units unit ] ;represents an infantry unit
-breed [ armies army ] ;represents an army, made up of units
-breed [ artilleries artillery ] ;represents an artillery brigade
+breed [ units unit ] ;Represents a unit
 breed [ dead-units dead-unit ] ;represents a captured unit
-breed [ pathnodes pathnode ]
 breed [ cities city ] ;visual representation of city for context
 
 cells-own [
@@ -80,19 +77,19 @@ dead-units-own [
   troops
 ]
 
+cities-own []
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Setup Functions     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; main setup function
+;; Main setup function
 to setup
   clear-all
   setup-global-constants
   setup-global-counters
-  setup-grid ;Set up the hex grid
-  setup-waypoints ;Set up unit waypoints
+  setup-grid
   import-drawing "Game Map Scoped.png" ;Import game map
   ask cells [ set hidden? true]
   add-terrain ;Draw Terrain from tannenhexmap.txt
@@ -102,6 +99,7 @@ to setup
   reset-ticks
 end
 
+;; Set global constants (these variables should not be changed during execution)
 to setup-global-constants
   set tick-length 3 ;tick length in hours
                     ;set tick-distance ?
@@ -111,18 +109,15 @@ to setup-global-constants
   set rus2nd .1 ;tune this ;.2
 end
 
+;; Set global counters (variables which are used to indicate program state)
 to setup-global-counters
   set hours-passed 0
   set german-losses 0
   set russian-losses 0
   set battle-over false
-  set altern false
 end
 
-to setup-waypoints ;;waypoints not currently implemented
-end
-
-;; define hex grid
+;; Setup the map.
 to setup-grid
   set-patch-size mapSize
   set-default-shape cells "hex"
@@ -146,7 +141,7 @@ to setup-grid
       [ set hex-neighbors cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ] ]
 end
 
-;; Resize the world and set the hexagon tiles' colors based on input terrain type
+;; Resize the world and set the hex colors based on input terrain type
 to add-terrain
   let data []
   file-open "tannenhexmap.txt"
@@ -178,18 +173,24 @@ to display-unit [allegiance]
   if pxcor mod 2 = 0 [ set ycor ycor - 0.5 ]
 end
 
+;; Modify visual size at each step based on num troops
+to size-armies
+  ask units [ set size (.8 * troops / max-troops) + 0.4 ] 
+end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Target Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Maintain the set of neighboring enemies for each unit
 to set-neighb-enemies [unit]
   ask unit [
     let teamNumber [team] of self
-    set neighb-enemies report-adjacent-units with [team != teamNumber] ;(units with [team != teamNumber and distance myself <= 1.1])
+    set neighb-enemies report-adjacent-units with [team != teamNumber]
   ]
 end
 
+;; Maintain a target for each unit. Target is the closest enemy unit. 
 to set-targets
   ask units [
     let teamNumber [team] of self
@@ -205,7 +206,8 @@ end
 ;;    Combat Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; An attacker attacks all adjacent defenders with a proportion of his firepower.
+;; An attacker attacks all adjacent defenders with a proportion of his firepower
+;; according to the Lanchester Aggregate Square Law model
 to agg-attack [attacker proportion]
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker) * (tick-length / 24))
   
@@ -246,24 +248,23 @@ end
 ;;    Movement Procedures     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;; Outermost movement function
 to move-armies
   set-targets
   approach-armies
-  ;ask (units with [travelling = false]) [ approach self ]
   
-  foreach sort (units with [travelling = true]) 
-  [
-    ask ? [
-      travel self
-    ]
+  foreach sort (units with [travelling = true]) [
+    ask ? [ travel self ]
   ]
 end
 
+;; Move armies that are not still 'travelling' (off the screen)
+;; Calls 'bfs' to set the next hex grid for each unit
 to approach-armies
   foreach sort(units with [travelling = false])
   [
-    if is-turtle? ?
-    [
+    if is-turtle? ? [
       ask ? [ 
         let myteam team
         bfs (one-of cells-here) (self)
@@ -273,6 +274,8 @@ to approach-armies
   ]
 end
 
+;; Actual movement function. Calls attack function if there are neighboring enemies. 
+;; Reinforces neighboring units who are fighting. 
 to approach [unit]
   if (target != nobody) []
   
@@ -284,7 +287,6 @@ to approach [unit]
     
     let defenders [neighb-enemies] of self
     
-    ;if-else distance target <= 1 [ attack myself target 1 ]
     if-else (count defenders > 0) [ 
       set isEngaged true 
       agg-attack myself 1 ]
@@ -306,17 +308,14 @@ to approach [unit]
           ]
         ]
         [
-          if myUnitType != 2
-          [
-            move-to nextCell
-          ]
+          if myUnitType != 2 [ move-to nextCell ]
         ]
       set isEngaged false
     ]
   ]
 end
 
-;; Offscreen unit marching
+;; Simulate offscreen unit marching. Units appear once their travelTime has decreased to 0.
 to travel [unit]
   ask unit[ 
     set travelTime travelTime - tick-length
@@ -328,10 +327,10 @@ to travel [unit]
   ]
 end
 
-; Run a breadth-first search for distance from the start to the goal
-; Inputs are hexes that are not water
-; goal is reachable by starting at start and moving between adjacent hexes that are not water
-; Returns the next step to take
+;; Run a breadth-first search for distance from the start to the goal
+;; Inputs are hexes that are not water
+;; goal is reachable by starting at start and moving between adjacent hexes that are not water
+;; Returns the next step to take
 to bfs [start div]
   let dict table:make
   let queue []
@@ -404,6 +403,7 @@ to add-unit [ xco yco introops effectiveness allegiance inUnitType]
     set size (.8 * troops / max-troops) + 0.4]]
 end
 
+;; Generate a 'dead' unit
 to add-dead-unit [ newTroops ]
   ;  sprout-dead-units 1 [
   ;    set size 0.8
@@ -431,13 +431,14 @@ to add-approaching-unit [ xco yco introops effectiveness allegiance inUnitType m
     hide-turtle]]
 end
 
+;; Helper function to add a city
 to add-city [ xco yco lbl ]
-  create-cities 1 [setxy xco yco set size .5 set label lbl ]
+  create-cities 1 [setxy xco yco set label lbl ]
 end
 
-; Add units
+;; Add all units to the simulation
 to add-units
-  ; add-unit x y troops effectiveness team(0 is german, 1 is russian) unitType
+  ; add-unit x y troops effectiveness team (0:german, 1:russian) unitType
   
   ; I Corps - starts near Seeben    
   add-unit 10 3 7000 ger8th 0 1
@@ -537,8 +538,10 @@ to add-units
   add-unit 18 10 10000 rus2nd 1 2
   
 end
-; Add cities to the map
+
+;; Add all cities to the map
 to add-cities
+  ;;;;;;;; x y  name
   add-city 6 17 "Osterode"
   add-city 0 14 "Deutsch Eylau"
   add-city 2 13 "Lobau"
@@ -558,6 +561,7 @@ to add-cities
   ]
 end
 
+;; Report all units adjacent to current unit
 to-report report-adjacent-units
   ifelse pxcor mod 2 = 0
     [ report units-on cells-on patches at-points [[0 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0]] ]
@@ -569,17 +573,11 @@ end
 ;;    Phased Out Code     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;this is phased out because we are doing aggregate attack
-; An attacker attacks the defender with a proportion of his firepower.
+;; ;; ;; This is phased out because we are doing aggregate attack
+;; An attacker attacks the defender with a proportion of his firepower.
 to attack [attacker defender proportion]
-  
-  ;Unaimed fire calculations performed first
-  ;Attacker performs attrition on the defender first
-  
-  ;let defendDamage ([troops] of defender * ([aimedWeapons] of defender))
   let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
-  
-  ;ask attacker [set troops (troops - defendDamage)]
+
   ask defender [set troops (round troops - (attackDamage))]
   
   if-else [troops] of defender < 0 [ ask defender [die] ]
@@ -596,8 +594,8 @@ to attack [attacker defender proportion]
   ]
 end
 
-;this is currently phased out because we are doing unit-by-unit surrender
-;use this function if you want victory conditions to be defined on an army-by-army basis
+;; ;; ;; This is currently phased out because we are doing unit-by-unit surrender
+;; Use this function if you want victory conditions to be defined on an army-by-army basis
 ;to check-victory-conditions-for-army-surrender
 ;  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
 ;  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
@@ -623,41 +621,6 @@ end
 ;      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
 ;    ]]]
 ;end
-
-;;;;;;SOUND FUNCTIONS;;;;;;;
-
-to beethoven
-  ifelse altern [
-    sound:play-sound "Horse.wav"
-    set altern false
-  ][
-  set clock 0
-  let i "Trumpet"
-  let v 50
-  ;; da da da DUMMMM
-  note i v 63 quarter
-  note i v 59 quarter
-  note i v 63 eighth
-  note i v 59 eighth
-  note i v 54 quarter
-  set altern true
-  ]
-end
-;;; helpers
-
-to note [instrument velocity pitch duration]
-  sound:play-note-later clock instrument pitch velocity duration
-  set clock clock + duration
-end
-
-to rest [duration]
-  set clock clock + duration
-end
-
-to-report whole   report 240 / 240 end
-to-report half    report 120 / 240 end
-to-report quarter report  60 / 240 end
-to-report eighth  report  30 / 240 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 251
@@ -865,25 +828,33 @@ days-passed
 11
 
 @#$#@#$#@
+
+
 ## WHAT IS IT?
 
-This is a simulation of the battle of Tannenberg in 1914.
+This simulation models the events that took place during the Battle of Tannenberg in World War I. This battle, the first on Germany's eastern front, saw the German 8th Army soundly defeat the Russian 2nd Army in one of the major German triumphs of the war. 
+
+The decisiveness of Germany's victory is widely attributed to their ability to mobilize troops quickly to encircle the Russian 2nd army in the south, while the Russian 1st army failed to take any action in time to change the course of events. 
+
+While simulating the original battle as a baseline, this simulation also models a hypothetical scenario in which the Russian 1st army moves in time to approach the battle. In adding this to the simulation, we attempt to answer the following research question:
+
+"How would the distribution of total casualties been affected if the Russian 2nd Army had been reinforced by detachments from Rennenkampf's 1st Army?"
 
 ## HOW IT WORKS
 
-Since patches are square, we must represent the cells as turtles instead.
+The simulation takes place on a hexagonal grid that is centered on the geographical area where the battle took place (northeast Poland). Russian and German units are placed on this grid to reflect the approximate areas taken up by the armies in the historical scenario. 
 
-Each patch sprouts a "cell" turtle.  Turtles on even patch columns are offset down by half a patch.  (Since the south boundary of a patch is part of the patch, this does not move the turtle to a different patch.)
+The key unit variab [TO BE CONTINUED . . . ]
 
-The resulting lattice has the correct structure, but distances and angles are distorted. So the hexagons aren't actually regular, but it doesn't matter as long as you don't try to use primitives such as `distance` and `towards`.
+## HOW TO USE IT
 
-Also, you must use the `hex-neighbors` variable instead of the built-in `neighbors` and `neighbors4` reporters.
+## THINGS TO TRY
 
-## RELATED MODELS
+## EXTENDING THE MODEL
 
-This example is for stationary cells.  Hex Turtles Example shows how to make turtles that move along a hexagonal lattice.  (It would also be possible to combine both techniques in a single model.)
 
-Link Lattice Example and Lattice-Walking Turtles Example demonstrate another approach to making a hexagonal lattice, using links instead of just patches.
+TODO: Should we have different unit types?
+TODO: Waypoints?
 @#$#@#$#@
 default
 true
