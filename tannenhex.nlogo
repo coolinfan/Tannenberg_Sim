@@ -666,10 +666,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-27
-187
-212
-220
+26
+165
+211
+198
 headstart
 headstart
 0
@@ -681,10 +681,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-24
-241
-214
-274
+23
+219
+213
+252
 ruseffectiveness
 ruseffectiveness
 0
@@ -696,20 +696,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-63
-172
-268
-200
+62
+150
+267
+178
 Russian Arrival Time
 11
 0.0
 1
 
 TEXTBOX
-38
-225
-215
-253
+37
+203
+214
+231
 Russian 1st Army effectiveness
 11
 0.0
@@ -756,10 +756,10 @@ TEXTBOX
 1
 
 MONITOR
-14
-122
-64
-167
+101
+272
+151
+317
 Day
 days-passed
 1
