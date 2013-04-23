@@ -689,7 +689,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.1
+0.085
 .005
 1
 NIL
@@ -726,7 +726,7 @@ Troops
 0.0
 4.0
 0.0
-10.0
+300000.0
 true
 false
 "" ""
@@ -741,7 +741,7 @@ SWITCH
 115
 firstRussianArmy
 firstRussianArmy
-0
+1
 1
 -1000
 
