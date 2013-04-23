@@ -29,8 +29,6 @@ globals [
   max-troops        ;max number of troops in a hex
   ger8th            ;effectiveness of german 8th army
   rus2nd            ;effectiveness of russian 2nd army
-  
-  clock
 ]
 
 to step
@@ -446,23 +444,23 @@ end
 
 ;; Helper function to add a city
 to add-city [ xco yco lbl ]
-  create-cities 1 [setxy xco yco set label lbl ]
+  create-cities 1 [
+    setxy xco yco 
+    set label lbl 
+  ]
 end
 
 ;; Add all units to the simulation
 to add-units
   ; add-unit x y troops effectiveness team (0:german, 1:russian) unitType
-  
-  ; I Corps - starts near Seeben    
-  add-unit 10 3 7000 ger8th 0 1
+  add-unit 10 3 7000 ger8th 0 1  ; I Corps - starts near Seeben  
   add-unit 10 4 7000 ger8th 0 1
   add-unit 10 5 7000 ger8th 0 1
   add-unit 10 6 7000 ger8th 0 1
   add-unit 11 7 7000 ger8th 0 1
   add-unit 9 3 7000 ger8th 0 1  
   
-  ; XX Corps - Tannenberg
-  add-unit 11 8 6000 ger8th 0 0
+  add-unit 11 8 6000 ger8th 0 0  ; XX Corps - Tannenberg
   add-unit 11 9 6000 ger8th 0 0
   add-unit 11 10 6000 ger8th 0 0
   add-unit 11 11 6000 ger8th 0 0
@@ -470,16 +468,14 @@ to add-units
   add-unit 11 13 6000 ger8th 0 0
   add-unit 11 14 9000 ger8th 0 0
   
-  ; XVII Corps - starts south of Heilsburg
-  add-unit 24 20 8000 ger8th 0 0
+  add-unit 24 20 8000 ger8th 0 0  ; XVII Corps - starts south of Heilsburg
   add-unit 24 19 8000 ger8th 0 0
   add-unit 24 18 8000 ger8th 0 0
   add-unit 24 17 8000 ger8th 0 0
   add-unit 25 20 8000 ger8th 0 0
   
   ;German 8th
-  ; IR Corps - Starts near XVII Corps
-  add-unit 16 22 8000 ger8th 0 1
+  add-unit 16 22 8000 ger8th 0 1  ; IR Corps - Starts near XVII Corps
   add-unit 17 22 8000 ger8th 0 1
   add-unit 16 23 8000 ger8th 0 0
   add-unit 15 23 8000 ger8th 0 0
@@ -489,8 +485,7 @@ to add-units
   
   if (firstRussianArmy) [
     ;  Russian 1st
-    ;  IV Corps
-    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 0 + headStartOffset    ;  IV Corps
     add-approaching-unit 30 25 10000 ruseffectiveness 1 0 0 + headStartOffset
     add-approaching-unit 31 25 10000 ruseffectiveness 1 0 0 + headStartOffset
     add-approaching-unit 32 25 10000 ruseffectiveness 1 0 0 + headStartOffset
@@ -500,8 +495,7 @@ to add-units
     add-approaching-unit 32 24 10000 ruseffectiveness 1 0 0 + headStartOffset
     add-approaching-unit 33 24 10000 ruseffectiveness 1 0 0 + headStartOffset
     
-    ;  III Corps
-    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 12 + headStartOffset
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 0 12 + headStartOffset    ;  III Corps
     add-approaching-unit 30 25 10000 ruseffectiveness 1 0 12 + headStartOffset
     add-approaching-unit 31 25 10000 ruseffectiveness 1 0 12 + headStartOffset
     add-approaching-unit 32 25 10000 ruseffectiveness 1 0 12 + headStartOffset
@@ -509,8 +503,7 @@ to add-units
     add-approaching-unit 32 24 10000 ruseffectiveness 1 0 12 + headStartOffset
     add-approaching-unit 33 24 10000 ruseffectiveness 1 0 12 + headStartOffset
     
-    ;  XX Corps
-    add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + headStartOffset
+    add-approaching-unit 29 25 10000 ruseffectiveness 1 1 18 + headStartOffset    ;  XX Corps
     add-approaching-unit 30 25 10000 ruseffectiveness 1 1 18 + headStartOffset
     add-approaching-unit 31 25 10000 ruseffectiveness 1 1 18 + headStartOffset
     add-approaching-unit 32 25 10000 ruseffectiveness 1 1 18 + headStartOffset
@@ -520,8 +513,7 @@ to add-units
   ]
   
   ;Russian 2nd
-  ; I Corps - Just south of Soldau
-  add-unit 16 10 10000 rus2nd 1 0
+  add-unit 16 10 10000 rus2nd 1 0  ; I Corps - Just south of Soldau
   add-unit 16 13 10000 rus2nd 1 0
   add-unit 16 14 10000 rus2nd 1 0
   add-unit 16 11 10000 rus2nd 1 0
@@ -529,23 +521,20 @@ to add-units
   add-unit 16 12 10000 rus2nd 1 0
   
   ; VI Corps was hardly a factor, so not included
-  
-  ; XIII Corps - northeast of Orlau
-  add-unit 16 16 10000 rus2nd 1 0
+
+  add-unit 16 16 10000 rus2nd 1 0  ; XIII Corps - northeast of Orlau
   add-unit 17 15 10000 rus2nd 1 0
   add-unit 16 16 10000 rus2nd 1 0
   add-unit 16 17 10000 rus2nd 1 0
   add-unit 17 16 10000 rus2nd 1 0
   
-  ; XV Corps - Just south of Orlau
-  add-unit 17 14 10000 rus2nd 1 0
+  add-unit 17 14 10000 rus2nd 1 0  ; XV Corps - Just south of Orlau
   add-unit 18 15 10000 rus2nd 1 0
   add-unit 18 16 10000 rus2nd 1 0
   add-unit 17 12 10000 rus2nd 1 0
   add-unit 17 13 10000 rus2nd 1 0
   
-  ; XXIII Corps - defensive position near neidenburg
-  add-unit 18 11 10000 rus2nd 1 2
+  add-unit 18 11 10000 rus2nd 1 2  ; XXIII Corps - defensive position near neidenburg
   add-unit 17 10 10000 rus2nd 1 2
   add-unit 17 11 10000 rus2nd 1 2
   add-unit 18 10 10000 rus2nd 1 2
@@ -581,59 +570,7 @@ to-report report-adjacent-units
     [ report units-on cells-on patches at-points [[0 1] [1 1] [1  0] [0 -1] [-1  0] [-1 1]] ]
 end
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    Phased Out Code     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; ;; ;; This is phased out because we are doing aggregate attack
-;; An attacker attacks the defender with a proportion of his firepower.
-to attack [attacker defender proportion]
-  let attackDamage round ([troops] of attacker * proportion * ([aimedWeapons] of attacker))
-
-  ask defender [set troops (round troops - (attackDamage))]
-  
-  if-else [troops] of defender < 0 [ ask defender [die] ]
-  [
-    if ([troops] of defender < (0.45 * [maxTroops] of defender) and [team] of defender = 1) [
-      ask patch [xcor] of defender [ycor] of defender [ sprout-dead-units 1 [
-        set troops [troops] of defender
-        set team[team] of defender
-        display-unit team
-        set russian-losses (russian-losses + [troops] of defender)
-      ] ]
-      ask defender [die]
-    ]
-  ]
-end
-
-;; ;; ;; This is currently phased out because we are doing unit-by-unit surrender
-;; Use this function if you want victory conditions to be defined on an army-by-army basis
-;to check-victory-conditions-for-army-surrender
-;  let germanEighthArmyTroops (sum [troops] of units with [group = 0])
-;  let russianSecondArmyTroops (sum [troops] of units with [group = 2])
-;  if russianSecondArmyTroops <= 0 [set russianSecondArmyTroops 1]
-;  let southern-german-ratio germanEighthArmyTroops / russianSecondArmyTroops
-;  
-;  if-else southern-german-ratio > 3 [ ;southern german victory
-;    let powCount (sum [troops] of units with [group = 2])
-;    let powHandlers (round powCount / 10)
-;    ask units with [group = 2] [die]
-;    let totalGermanTroops sum [troops] of units with [group = 0]
-;    ask units with [group = 0] [
-;      let troopFrac troops / totalGermanTroops ;the percentage of troops in this unit out of all russian units
-;      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-;    ]] 
-;  [ if southern-german-ratio < (1 / 3) [ ;southern german defeat
-;    let powCount (sum [troops] of units with [group = 0])
-;    let powHandlers (round powCount / 10)
-;    ask units with [group = 0] [die]
-;    let totalRussianTroops sum [troops] of units with [group = 2]
-;    ask units with [group = 2] [
-;      let troopFrac troops / totalRussianTroops ;the percentage of troops in this unit out of all russian units
-;      ask self [set troops (round troops - (troopFrac * powHandlers))] ;scale pow handlers by the percentage of troops in this unit
-;    ]]]
-;end
+;; EOF
 @#$#@#$#@
 GRAPHICS-WINDOW
 251
