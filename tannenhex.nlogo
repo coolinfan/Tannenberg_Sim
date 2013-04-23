@@ -63,9 +63,9 @@ breed [ cities city ] ;visual representation of city for context
 
 cells-own [
   hex-neighbors  ;; agentset of 6 neighboring cells
-  n              ;; used to store a count of white neighbors
-  terrain        ;; {0=forest, 1=water, 2=desert, 3=mud, 4=swamp}
-  hasrail
+  n              ;; used to store a count of accessible neighbors
+  terrain        ;; {0=forest, 1=water, 2=desert, 3=mud, 4=swamp}.
+                 ;; There is no longer differentiation between any besides {0,1}
 ]
 
 units-own [
@@ -76,7 +76,7 @@ units-own [
                          ;; unitType 2 = defensive-minded, no movement or reinforcement
   troops              ;; Actual troop count
   maxTroops           ;; Starting troop count
-  aimedWeapons        ;; Strength of the weapons that are aimed for direct fire (small arms)
+  aimedWeapons        ;; Strength of the weapons that are aimed for direct fire. For use in Lanch. Agg. 
   target              ;; [x y]
   neighb-enemies      ;; agent list of enemy units in neighboring hexes
   travelling
@@ -242,7 +242,7 @@ to agg-attack [attacker proportion]
       [set actualLosses oldTroops]
       [set actualLosses oldTroops - troops]
     
-    if-else [team] of attacker = 0 
+    if-else [team] of attacker = 0 ;update loss counts
       [set russian-losses russian-losses + actualLosses]
       [set german-losses german-losses + actualLosses]
     
@@ -818,17 +818,6 @@ TEXTBOX
 0.0
 1
 
-SWITCH
-70
-288
-191
-321
-doSound
-doSound
-1
-1
--1000
-
 MONITOR
 14
 122
@@ -849,6 +838,8 @@ This simulation models the events that took place during the Battle of Tannenber
 
 The decisiveness of Germany's victory is widely attributed to their ability to mobilize troops quickly to encircle the Russian 2nd army in the south, while the Russian 1st army failed to take any action in time to change the course of events. 
 
+### Research Question
+
 While simulating the original battle as a baseline, this simulation also models a hypothetical scenario in which the Russian 1st army moves in time to approach the battle. In adding this to the simulation, we attempt to answer the following research question:
 
 "How would the distribution of total casualties been affected if the Russian 2nd Army had been reinforced by detachments from Rennenkampf's 1st Army?"
@@ -857,17 +848,60 @@ While simulating the original battle as a baseline, this simulation also models 
 
 The simulation takes place on a hexagonal grid that is centered on the geographical area where the battle took place (northeast Poland). Russian and German units are placed on this grid to reflect the approximate areas taken up by the armies in the historical scenario. 
 
-The key unit variab [TO BE CONTINUED . . . ]
+### Turtles
+
+_Units_ are the key turtles in the simulation. They model a group of troops as well as other combat components (artillery, etc). Apart from the number of troops, all of the units' firepower details are condensed into a single variable, effectiveness, according to the Lanchester Aggregate attrition model. The unit turtle also contains a number of variables that are used to determine targetting and movement.
+
+Unit location and troop count has been determined according to historical details of the Battle of Tannenberg. 
+
+_Cells_ are the turtle that composes the terrain, and may contain units. Terrain may be water or land, where water is impassible. 
+
+_Dead Units_ may be spawned when a unit dies, to indicate the location of their demise. 
+
+_Cities_ are spawned to demonstrate the geographical context. They play no role in the model. 
+
+### Targetting
+
+At each step of the simulation, units are assigned a target. Currently, this target is the closest enemy unit. 
+
+### Movement 
+
+If a unit is neither adjacent to an enemy unit or adjacent to an engaged unit, it will move towards its target. This is achieved using a 'breadth first search' to search the graph for the shortest non-obstructed path to the target. The output of this search is the next cell for this unit to move to. 
+
+If a unit is not adjacent to an enemy unit, but adjacent to an engaged unit on its own team, it will send a portion of its troops to that engaged unit as reinforcements, in addition to moving towards its target. 
+
+If a unit is adjacent to an enemy unit, it will engage that unit. 
+
+An 'approaching' unit is a unit that is not yet on the screen. This serves to model the approach of the Russian 1st army. Approaching units simply spawn a certain number of ticks after the onset of simulation. 
+
+### Combat
+
+Adjacent units of different sides will engage in combat. This simulation employs the Lanchester Aggregate Square Model to model attrition. 
+
+1. The number of casualties the opponent suffers is calculated as the product of the attacker's effectiveness and troop count. 
+
+2. These casualties are subtracted from all adjacent enemies in a proportional way. That is, each adjacent enemy will lose the same percentage of their troops, with the sum of lost troops being the original attack damage. 
+
+3. If a unit is outnumbered in all adjacent hexes by a 3:1 ratio, it will surrender. The adjacent enemies will sacrifice 1 of their troops for every 10 POWs created in this fashion. 
 
 ## HOW TO USE IT
+1. Set the mapSize slider to a size that is convenient for your display. Adjust simulation speed. 
+
+2. Press the "setup" button.
+
+3. Press the "go" button. Alternatively, press the "step" button to watch discrete events within the simulation.
 
 ## THINGS TO TRY
+1. Set the '1st army?' switch to 'Off' if you wish to simulate the historical battle.
+Set the '1st army?' switch to 'On' if you wish to simulate the hypothetical battle where the Russian 1st army joins from the north. 
+
+2. If '1st army?' is set to 'On,' Set the 'Russian arrival time' slider to the number of days into the simulation that it takes until the Russian 1st Army arrives. Set the 'Russian 1st Army Effectiveness' slider to the effectiveness you wish the Russian 1st Army to have. These sliders are better used within the BehaviorSpace. 
 
 ## EXTENDING THE MODEL
-
-
 TODO: Should we have different unit types?
 TODO: Waypoints?
+TODO: Victory ratio from Justin?
+TODO: 'aimed-weapons' or 'effectiveness?'
 @#$#@#$#@
 default
 true
