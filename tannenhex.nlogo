@@ -1,3 +1,16 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tannenberg_Sim                       ;;;;;;;;;;;;;;;;;;
+;; Developed by                         ;;;;;;;;;;;;;;;;;;
+;; Nathaniel Fan and Casey Battaglino   ;;;;;;;;;;;;;;;;;;
+;; April 25, 2013                       ;;;;;;;;;;;;;;;;;;
+;;                                      ;;;;;;;;;;;;;;;;;;
+;; With research assistance from:       ;;;;;;;;;;;;;;;;;;
+;; Ethan Butler, Elizabeth Cupido       ;;;;;;;;;;;;;;;;;;
+;; Justin Pascale, Trevor Pool,         ;;;;;;;;;;;;;;;;;;
+;; Brian Railing                        ;;;;;;;;;;;;;;;;;;
+;;                                      ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 extensions[table]
 
 globals [
