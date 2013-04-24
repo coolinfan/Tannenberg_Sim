@@ -49,6 +49,13 @@ end
 ;; Number of days after August 26, 1914 elapsed
 to-report days-passed report (0 + hours-passed / 24) end
 
+to-report winner
+  let russTroops sum [troops] of units with [team = 0]
+  let germTroops sum [troops] of units with [team = 1]
+  
+  ifelse (russTroops > germTroops) [ report 1 ] [ report 0 ]
+end
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Turtle Definitions     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -674,7 +681,7 @@ headstart
 headstart
 0
 4
-0
+3.125
 .125
 1
 NIL
@@ -689,7 +696,7 @@ ruseffectiveness
 ruseffectiveness
 0
 .5
-0.085
+0.1
 .005
 1
 NIL
@@ -741,7 +748,7 @@ SWITCH
 115
 firstRussianArmy
 firstRussianArmy
-1
+0
 1
 -1000
 
@@ -836,6 +843,7 @@ Set the '1st army?' switch to 'On' if you wish to simulate the hypothetical batt
 
 ## EXTENDING THE MODEL
 TODO: Should we have different unit types?
+TODO: 4 units dont move at beginning
 TODO: Waypoints?
 TODO: Victory ratio from Justin?
 TODO: 'aimed-weapons' or 'effectiveness?'
@@ -1143,13 +1151,13 @@ repeat 20 [ go ]
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <exitCondition>battle-over</exitCondition>
-    <metric>sum [troops] of units with [team = 0 and travelTime = 0]</metric>
-    <metric>sum [troops] of units with [team = 1 and travelTime = 0]</metric>
-    <steppedValueSet variable="rus2nd" first="0.1" step="0.05" last="0.6"/>
+    <metric>winner</metric>
+    <steppedValueSet variable="rus2nd" first="0.1" step="0.05" last="0.3"/>
+    <steppedValueSet variable="headstart" first="1" step="0.1" last="4"/>
   </experiment>
 </experiments>
 @#$#@#$#@
