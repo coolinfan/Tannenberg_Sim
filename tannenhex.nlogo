@@ -25,12 +25,12 @@ globals [
   
   ; global constants
   tick-length       ;number of hours in a tick
-  tick-distance
   max-troops        ;max number of troops in a hex
   ger8th            ;effectiveness of german 8th army
   rus2nd            ;effectiveness of russian 2nd army
 ]
 
+;; Performs one timestep.
 to step
   move-armies
   set hours-passed (hours-passed + tick-length)
@@ -38,6 +38,7 @@ to step
   tick
 end
 
+;; Used to run the simulation until the battle is over.
 to go 
   ; go until one side is no longer in play
   if not battle-over [
@@ -845,10 +846,7 @@ Set the '1st army?' switch to 'On' if you wish to simulate the hypothetical batt
 
 ## EXTENDING THE MODEL
 TODO: Should we have different unit types?
-TODO: 4 units dont move at beginning
 TODO: Waypoints?
-TODO: Victory ratio from Justin?
-TODO: 'aimed-weapons' or 'effectiveness?'
 @#$#@#$#@
 default
 true
