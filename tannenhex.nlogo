@@ -76,7 +76,7 @@ cells-own [
 
 units-own [
   team                ;; Which Faction this unit is a part of
-  unitType               ;; Different unitTypes willl exhibit different behaviors or follow different orders
+  unitType               ;; Different unitTypes will exhibit different behaviors or follow different orders
                          ;; unitType 0 = normal movement and reinforcement
                          ;; unitType 1 = attacking-focused, no reinforcement
                          ;; unitType 2 = defensive-minded, no movement or reinforcement
@@ -799,6 +799,10 @@ The simulation takes place on a hexagonal grid that is centered on the geographi
 
 _Units_ are the key turtles in the simulation. They model a group of troops as well as other combat components (artillery, etc). Apart from the number of troops, all of the units' firepower details are condensed into a single variable, effectiveness, according to the Lanchester Aggregate attrition model. The unit turtle also contains a number of variables that are used to determine targetting and movement.
 
+Certain key units have been given different behaviors to more closely model the behaviors shown in history.  The units representing the right flank of Germany's I Corps demonstrate a more aggressive mindset.  They do not reinforce existing conflicts, but instead move around existing lines to flank the Russians from the right.  Also, because Russia's XXIII corps harldy moves during the battle, the units representing XXIII Corps stay in the same location and defend.
+
+The rest of the units in the simulation are given a more balanced mindset where they attack if there are gaps in the line, or they reinforce existing fronts if they are close by.
+
 Unit location and troop count has been determined according to historical details of the Battle of Tannenberg. 
 
 _Cells_ are the turtle that composes the terrain, and may contain units. Terrain may be water or land, where water is impassible. 
@@ -807,15 +811,15 @@ _Dead Units_ may be spawned when a unit dies, to indicate the location of their 
 
 _Cities_ are spawned to demonstrate the geographical context. They play no role in the model. 
 
-### Targetting
+### Targeting
 
-At each step of the simulation, units are assigned a target. Currently, this target is the closest enemy unit. 
+At each step of the simulation, units are assigned a target. Currently, this target is the enemy unit that is the least number of steps away (so a nearby unit may not be targeted if it is surrounded by obstacles or other units).
 
 ### Movement 
 
 If a unit is neither adjacent to an enemy unit or adjacent to an engaged unit, it will move towards its target. This is achieved using a 'breadth first search' to search the graph for the shortest non-obstructed path to the target. The output of this search is the next cell for this unit to move to. 
 
-If a unit is not adjacent to an enemy unit, but adjacent to an engaged unit on its own team, it will send a portion of its troops to that engaged unit as reinforcements, in addition to moving towards its target. 
+If a regular unit (not Russian XXIII Corps or German I Corps) is not adjacent to an enemy unit, but adjacent to an engaged unit on its own team, it will send a portion of its troops to that engaged unit as reinforcements, in addition to moving towards its target.
 
 If a unit is adjacent to an enemy unit, it will engage that unit. 
 
