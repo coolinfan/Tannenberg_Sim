@@ -799,7 +799,10 @@ The simulation takes place on a hexagonal grid that is centered on the geographi
 
 _Units_ are the key turtles in the simulation. They model a group of troops as well as other combat components (artillery, etc). Apart from the number of troops, all of the units' firepower details are condensed into a single variable, effectiveness, according to the Lanchester Aggregate attrition model. The unit turtle also contains a number of variables that are used to determine targetting and movement.
 
-Certain key units have been given different behaviors to more closely model the behaviors shown in history.  The units representing the right flank of Germany's I Corps demonstrate a more aggressive mindset.  They do not reinforce existing conflicts, but instead move around existing lines to flank the Russians from the right.  Also, because Russia's XXIII corps harldy moves during the battle, the units representing XXIII Corps stay in the same location and defend.
+Certain key units have been given different behaviors to more closely model the behaviors shown in history.  
+
+1.  The units representing the right flank of Germany's I Corps demonstrate a more aggressive mindset.  They do not reinforce existing conflicts, but instead move around existing lines to flank the Russians from the right.  
+2.  Because Russia's XXIII corps harldy moves during the battle, the units representing XXIII Corps stay in the same location and defend.
 
 The rest of the units in the simulation are given a more balanced mindset where they attack if there are gaps in the line, or they reinforce existing fronts if they are close by.
 
